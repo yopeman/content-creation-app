@@ -1,0 +1,57 @@
+from datetime import datetime
+from typing import Any, Dict, List, Optional
+from beanie import PydanticObjectId
+from pydantic import BaseModel, ConfigDict, Field
+from app.models.enums import PlatformCode, PostStatus, PostTargetStatus
+
+
+class PostTargetBase(BaseModel):
+    platform_id: PydanticObjectId
+    platform_code: PlatformCode
+    scheduled_at: Optional[datetime] = None
+    payload_override: Dict[str, Any] = Field(default_factory=dict)
+
+
+class PostTargetCreate(PostTargetBase):
+    pass
+
+
+class PostTargetResponse(PostTargetBase):
+    id: PydanticObjectId = Field(alias="_id")
+    post_id: PydanticObjectId
+    user_id: PydanticObjectId
+    status: PostTargetStatus
+    attempts: int
+    next_attempt_at: Optional[datetime] = None
+    error: Optional[str] = None
+    external_post_id: Optional[str] = None
+    external_url: Optional[str] = None
+    published_at: Optional[datetime] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(populate_by_name=True)
+
+
+class PostCreate(BaseModel):
+    user_id: Optional[PydanticObjectId] = None
+    content_id: PydanticObjectId
+    plan_item_id: Optional[PydanticObjectId] = None
+    scheduled_at: Optional[datetime] = None
+    status: PostStatus = PostStatus.DRAFT
+    targets: List[PostTargetCreate] = Field(default_factory=list)
+
+
+class PostResponse(BaseModel):
+    id: PydanticObjectId = Field(alias="_id")
+    user_id: PydanticObjectId
+    content_id: PydanticObjectId
+    plan_item_id: Optional[PydanticObjectId] = None
+    scheduled_at: Optional[datetime] = None
+    status: PostStatus
+    targets: List[PostTargetResponse] = Field(default_factory=list)
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(populate_by_name=True)
+
