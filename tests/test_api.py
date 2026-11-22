@@ -86,70 +86,88 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
     assert supported_platforms[0]["is_supported"] is True
     assert "bot_token" in supported_platforms[0]["required_details"]
 
-    # 2. Attempt to connect an unsupported platform (e.g., FB)
-    unsupported_resp = await auth_client.post(
+    # 2. General POST /api/v1/platforms is removed (returns 405 Method Not Allowed)
+    general_post_resp = await auth_client.post(
         "/api/v1/platforms",
+        json={"code": "TG", "chat_id": "@test"},
+    )
+    assert general_post_resp.status_code == 405
+
+    # 3. Connecting with invalid bot token fails with 400
+    invalid_connect = await auth_client.post(
+        "/api/v1/platforms/tg",
         json={
-            "code": "FB",
-            "account_name": "My Facebook Page",
-            "platform_account_id": "12345678",
+            "bot_token": "invalid_bot_token_123",
+            "chat_id": "@tech_dispatch",
         },
     )
-    assert unsupported_resp.status_code == 400
-    assert "not supported yet" in unsupported_resp.json()["detail"]
+    assert invalid_connect.status_code == 400
+    assert "Invalid Telegram Bot Token" in invalid_connect.json()["detail"]
 
-    # 3. Connect a supported platform (TG)
+    # 4. Connect platform via specialized POST /api/v1/platforms/tg (ONLY bot_token & chat_id provided!)
     connect_resp = await auth_client.post(
-        "/api/v1/platforms",
+        "/api/v1/platforms/tg",
         json={
-            "code": "TG",
-            "account_name": "Tech Dispatch Channel",
-            "platform_account_id": "@tech_dispatch",
-            "details": {"bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11", "chat_id": "@tech_dispatch"},
-            "status": "connected",
+            "bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            "chat_id": "@tech_dispatch",
         },
     )
     assert connect_resp.status_code == 201
     platform_data = connect_resp.json()
     assert platform_data["code"] == "TG"
-    assert platform_data["account_name"] == "Tech Dispatch Channel"
+    # Auto-resolved channel name bound from Telegram API
+    assert platform_data["account_name"] == "Telegram Channel @tech_dispatch"
     assert platform_data["platform_account_id"] == "@tech_dispatch"
+    assert platform_data["details"]["bot_token"] == "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
     assert platform_data["details"]["chat_id"] == "@tech_dispatch"
     assert "_id" in platform_data
     platform_id = platform_data["_id"]
 
-    # 4. List connected platforms
+    # 5. Duplicate Telegram connection should fail (400 Bad Request)
+    dup_resp = await auth_client.post(
+        "/api/v1/platforms/tg",
+        json={
+            "bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            "chat_id": "@tech_dispatch",
+        },
+    )
+    assert dup_resp.status_code == 400
+    assert "already connected" in dup_resp.json()["detail"]
+
+    # 6. List connected platforms (verifies account_name is bound and returned)
     list_resp = await auth_client.get("/api/v1/platforms")
     assert list_resp.status_code == 200
     connected_list = list_resp.json()
-    assert any(p["_id"] == platform_id for p in connected_list)
+    matched = [p for p in connected_list if p["_id"] == platform_id]
+    assert len(matched) == 1
+    assert matched[0]["account_name"] == "Telegram Channel @tech_dispatch"
 
-    # 5. Get detail of connected platform
+    # 7. Get detail of connected platform
     detail_resp = await auth_client.get(f"/api/v1/platforms/{platform_id}")
     assert detail_resp.status_code == 200
     detail_data = detail_resp.json()
     assert detail_data["_id"] == platform_id
-    assert detail_data["account_name"] == "Tech Dispatch Channel"
+    assert detail_data["account_name"] == "Telegram Channel @tech_dispatch"
 
-    # 6. Edit connection
+    # 8. Re-sync platform details with external platform
+    sync_resp = await auth_client.post(f"/api/v1/platforms/{platform_id}/sync")
+    assert sync_resp.status_code == 200
+    assert sync_resp.json()["account_name"] == "Telegram Channel @tech_dispatch"
+
+    # 9. Edit connection
     edit_resp = await auth_client.patch(
         f"/api/v1/platforms/{platform_id}",
-        json={
-            "account_name": "Tech Dispatch Channel - Primary",
-            "details": {"bot_token": "updated_bot_token", "chat_id": "@tech_dispatch_main"},
-        },
+        json={"account_name": "Custom Renamed Channel"},
     )
     assert edit_resp.status_code == 200
     edited_data = edit_resp.json()
-    assert edited_data["account_name"] == "Tech Dispatch Channel - Primary"
-    assert edited_data["details"]["bot_token"] == "updated_bot_token"
-    assert edited_data["details"]["chat_id"] == "@tech_dispatch_main"
+    assert edited_data["account_name"] == "Custom Renamed Channel"
 
-    # 7. Disconnect platform
+    # 10. Disconnect platform
     disconnect_resp = await auth_client.delete(f"/api/v1/platforms/{platform_id}")
     assert disconnect_resp.status_code == 204
 
-    # 8. Verify disconnected platform is not returned
+    # 11. Verify disconnected platform is no longer accessible
     get_after_delete = await auth_client.get(f"/api/v1/platforms/{platform_id}")
     assert get_after_delete.status_code == 404
 
@@ -203,14 +221,12 @@ async def test_local_file_upload_and_content_creation(auth_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_plan_and_post_flow(auth_client: AsyncClient):
-    # 1. Connect a platform account
+    # 1. Connect a platform account via specialized TG endpoint
     platform_resp = await auth_client.post(
-        "/api/v1/platforms",
+        "/api/v1/platforms/tg",
         json={
-            "code": "TG",
-            "account_name": "My Telegram Channel",
-            "platform_account_id": "@yope_news",
-            "status": "connected",
+            "bot_token": "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11",
+            "chat_id": "@yope_news",
         },
     )
     assert platform_resp.status_code == 201

@@ -52,6 +52,7 @@ dependencies = [
     { name = "beanie" },
     { name = "email-validator" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "motor" },
     { name = "pydantic-settings" },
     { name = "pyjwt" },
@@ -62,7 +63,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "httpx" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
 ]
@@ -74,6 +74,7 @@ requires-dist = [
     { name = "beanie", specifier = ">=2.2.0" },
     { name = "email-validator", specifier = ">=2.4.0" },
     { name = "fastapi", specifier = ">=0.165.0" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "motor", specifier = ">=3.7.1" },
     { name = "pydantic-settings", specifier = ">=2.16.3" },
     { name = "pyjwt", specifier = ">=2.15.1" },
@@ -84,7 +85,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "httpx", specifier = ">=0.28.1" },
     { name = "pytest", specifier = ">=9.2.0" },
     { name = "pytest-asyncio", specifier = ">=1.5.0" },
 ]

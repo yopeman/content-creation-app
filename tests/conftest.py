@@ -1,4 +1,6 @@
 from typing import AsyncGenerator
+from unittest.mock import patch
+import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from app.core.config import settings
@@ -45,3 +47,25 @@ async def auth_client(async_client: AsyncClient) -> AsyncClient:
     token = create_access_token(user.id)
     async_client.headers["Authorization"] = f"Bearer {token}"
     return async_client
+
+
+@pytest.fixture(autouse=True)
+def mock_telegram_api():
+    """Mocks outbound Telegram Bot API calls to ensure test runs are fast, isolated, and offline."""
+    with patch("app.api.v1.platforms.get_telegram_chat_info") as mock_info:
+        async def fake_get_chat_info(bot_token: str, chat_id: str):
+            if "invalid" in bot_token.lower():
+                from fastapi import HTTPException
+                raise HTTPException(
+                    status_code=400,
+                    detail="Invalid Telegram Bot Token. Please check the token provided by @BotFather.",
+                )
+            return {
+                "title": f"Telegram Channel {chat_id}",
+                "type": "channel",
+                "username": chat_id.lstrip("@"),
+                "raw": {},
+            }
+
+        mock_info.side_effect = fake_get_chat_info
+        yield mock_info

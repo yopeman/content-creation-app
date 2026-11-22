@@ -1,7 +1,7 @@
 [project]
 name = "backend"
 version = "0.1.0"
-description = "Add your description here"
+description = "FastAPI asynchronous backend for content creation and multi-platform publishing"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
@@ -10,6 +10,7 @@ dependencies = [
     "beanie>=2.2.0",
     "email-validator>=2.4.0",
     "fastapi>=0.165.0",
+    "httpx>=0.28.1",
     "motor>=3.7.1",
     "pydantic-settings>=2.16.3",
     "pyjwt>=2.15.1",
@@ -20,7 +21,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "httpx>=0.28.1",
     "pytest>=9.2.0",
     "pytest-asyncio>=1.5.0",
 ]
@@ -30,4 +30,3 @@ pythonpath = ["."]
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "session"
 asyncio_default_test_loop_scope = "session"
-

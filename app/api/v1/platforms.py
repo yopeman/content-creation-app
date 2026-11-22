@@ -7,11 +7,12 @@ from app.models.enums import PlatformCode, PlatformStatus
 from app.models.platform import Platform
 from app.models.user import User
 from app.schemas.platform import (
-    PlatformCreate,
     PlatformResponse,
     PlatformUpdate,
     SupportedPlatform,
+    TelegramPlatformCreate,
 )
+from app.services.telegram import get_telegram_chat_info
 
 router = APIRouter()
 
@@ -29,7 +30,7 @@ SUPPORTED_PLATFORMS: List[SupportedPlatform] = [
 
 @router.get("/supported", response_model=List[SupportedPlatform], summary="List Supported Platforms")
 async def list_supported_platforms():
-    """List all third-party platforms currently supported for connection."""
+    """List all third-party platforms currently supported for connection (currently only TG)."""
     return SUPPORTED_PLATFORMS
 
 
@@ -46,25 +47,44 @@ async def list_connected_platforms(
     return await Platform.find(*query).to_list()
 
 
-@router.post("", response_model=PlatformResponse, status_code=status.HTTP_201_CREATED, summary="Connect Platform")
-async def connect_platform(payload: PlatformCreate, current_user: User = Depends(get_current_user)):
-    """Connect a new platform account. Currently only TG (Telegram) is supported."""
-    supported_codes = {sp.code for sp in SUPPORTED_PLATFORMS if sp.is_supported}
-    if payload.code not in supported_codes:
-        supported_str = ", ".join(code.value for code in supported_codes)
+@router.post("/tg", response_model=PlatformResponse, status_code=status.HTTP_201_CREATED, summary="Connect Telegram Platform")
+async def connect_telegram_platform(
+    payload: TelegramPlatformCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Connect a Telegram channel or group using bot token and chat ID.
+
+    Automatically verifies credentials with Telegram API and resolves channel name.
+    """
+    existing = await Platform.find_one(
+        Platform.user_id == current_user.id,
+        Platform.code == PlatformCode.TG,
+        Platform.platform_account_id == payload.chat_id,
+        Platform.deleted_at == None,  # noqa: E711
+    )
+    if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Platform '{payload.code.value}' is not supported yet. Supported platforms: {supported_str}",
+            detail="This Telegram channel/chat is already connected.",
         )
+
+    # Validate bot credentials and resolve channel/chat name from Telegram API
+    chat_info = await get_telegram_chat_info(payload.bot_token, payload.chat_id)
+
+    details = {
+        "bot_token": payload.bot_token,
+        "chat_id": payload.chat_id,
+        "type": chat_info.get("type"),
+        "username": chat_info.get("username"),
+    }
 
     platform = Platform(
         user_id=current_user.id,
-        code=payload.code,
-        account_name=payload.account_name,
-        platform_account_id=payload.platform_account_id,
-        details=payload.details,
-        expires_at=payload.expires_at,
-        status=payload.status,
+        code=PlatformCode.TG,
+        account_name=chat_info["title"],
+        platform_account_id=payload.chat_id,
+        details=details,
+        status=PlatformStatus.CONNECTED,
     )
     await platform.insert()
     return platform
@@ -100,11 +120,51 @@ async def edit_platform_connection(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform account not found")
 
     update_data = payload.model_dump(exclude_unset=True)
+
+    bot_token = update_data.pop("bot_token", None)
+    chat_id = update_data.pop("chat_id", None)
+    if bot_token is not None:
+        platform.details["bot_token"] = bot_token
+    if chat_id is not None:
+        platform.details["chat_id"] = chat_id
+        if not update_data.get("platform_account_id"):
+            platform.platform_account_id = chat_id
+
+    if "details" in update_data and update_data["details"] is not None:
+        platform.details.update(update_data.pop("details"))
+
     for field, value in update_data.items():
         setattr(platform, field, value)
 
     platform.updated_at = datetime.now(timezone.utc)
     await platform.save()
+    return platform
+
+
+@router.post("/{platform_id}/sync", response_model=PlatformResponse, summary="Sync Platform Details with Remote")
+async def sync_platform(platform_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
+    """Re-sync channel or account details from the external platform (e.g. Telegram channel title)."""
+    platform = await Platform.find_one(
+        Platform.id == platform_id,
+        Platform.user_id == current_user.id,
+        Platform.deleted_at == None,  # noqa: E711
+    )
+    if not platform:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform account not found")
+
+    if platform.code == PlatformCode.TG:
+        bot_token = platform.details.get("bot_token")
+        chat_id = platform.details.get("chat_id") or platform.platform_account_id
+        if not bot_token or not chat_id:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Telegram credentials to sync.")
+
+        chat_info = await get_telegram_chat_info(bot_token, chat_id)
+        platform.account_name = chat_info["title"]
+        platform.details["type"] = chat_info.get("type")
+        platform.details["username"] = chat_info.get("username")
+        platform.updated_at = datetime.now(timezone.utc)
+        await platform.save()
+
     return platform
 
 

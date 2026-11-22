@@ -13,6 +13,11 @@ class SupportedPlatform(BaseModel):
     required_details: List[str] = Field(default_factory=list)
 
 
+class TelegramPlatformCreate(BaseModel):
+    bot_token: str = Field(..., description="Telegram Bot API token from @BotFather", min_length=10)
+    chat_id: str = Field(..., description="Target Channel username (e.g. @mychannel) or numeric chat ID")
+
+
 class PlatformBase(BaseModel):
     code: PlatformCode
     account_name: Optional[str] = None
@@ -29,6 +34,8 @@ class PlatformCreate(PlatformBase):
 class PlatformUpdate(BaseModel):
     account_name: Optional[str] = None
     platform_account_id: Optional[str] = None
+    bot_token: Optional[str] = None
+    chat_id: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
     status: Optional[PlatformStatus] = None
     expires_at: Optional[datetime] = None
