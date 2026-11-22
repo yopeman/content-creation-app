@@ -420,3 +420,83 @@ async def test_ai_plan_and_plan_item_generation(auth_client: AsyncClient):
     assert item_prompts[0]["plan_id"] == plan_id
 
 
+@pytest.mark.asyncio
+async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient):
+    # 1. Initial Content Generation (Root Prompt in Chain)
+    initial_payload = {
+        "prompt": "Top 3 Python Tips for Backend Engineers",
+        "title": "Top 3 Python Tips",
+        "formats": ["text", "image", "audio", "video"],
+    }
+    gen_resp = await auth_client.post("/api/v1/contents/generate", json=initial_payload)
+    assert gen_resp.status_code == 201
+    content_data = gen_resp.json()
+    content_id = content_data["_id"]
+    initial_text = next(d["text"] for d in content_data["details"] if d["type"] == "text")
+    assert initial_text is not None
+
+    # Fetch root prompt record
+    root_prompts_resp = await auth_client.get(f"/api/v1/prompts?content_id={content_id}")
+    assert root_prompts_resp.status_code == 200
+    root_prompts = root_prompts_resp.json()
+    assert len(root_prompts) == 1
+    root_prompt = root_prompts[0]
+    assert root_prompt["parent_prompt_id"] is None
+    assert root_prompt["status"] == "done"
+    root_prompt_id = root_prompt["_id"]
+
+    # 2. First Iterative Improvement via POST /contents/{content_id}/improve
+    improve_payload_1 = {
+        "instruction": "Make the text punchier, add 3 bullet points, and add hashtags. Update text, audio, and video.",
+        "formats": ["text", "audio", "video"],
+    }
+    improve_resp_1 = await auth_client.post(f"/api/v1/contents/{content_id}/improve", json=improve_payload_1)
+    assert improve_resp_1.status_code == 200
+    improved_content_1 = improve_resp_1.json()
+    improved_text_1 = next(d["text"] for d in improved_content_1["details"] if d["type"] == "text")
+    assert improved_text_1 is not None
+
+    # Check that prompt chain now has 2 prompts and parent_prompt_id points to root prompt
+    chain_resp_1 = await auth_client.get(f"/api/v1/contents/{content_id}/chain")
+    assert chain_resp_1.status_code == 200
+    chain_1 = chain_resp_1.json()
+    assert len(chain_1) == 2
+    assert chain_1[0]["_id"] == root_prompt_id
+    assert chain_1[0]["parent_prompt_id"] is None
+    assert chain_1[1]["parent_prompt_id"] == root_prompt_id
+    assert chain_1[1]["prompt"] == improve_payload_1["instruction"]
+    assert chain_1[1]["status"] == "done"
+    second_prompt_id = chain_1[1]["_id"]
+
+    # 3. Second Iterative Improvement via POST /contents/generate passing content_id
+    improve_payload_2 = {
+        "content_id": content_id,
+        "prompt": "Add a short call-to-action at the end asking developers for their favorite tip.",
+        "formats": ["text"],
+    }
+    improve_resp_2 = await auth_client.post("/api/v1/contents/generate", json=improve_payload_2)
+    assert improve_resp_2.status_code == 200 or improve_resp_2.status_code == 201
+    improved_content_2 = improve_resp_2.json()
+    improved_text_2 = next(d["text"] for d in improved_content_2["details"] if d["type"] == "text")
+    assert improved_text_2 is not None
+
+    # Verify full 3-step prompt chain via GET /contents/{content_id}/chain
+    chain_resp_2 = await auth_client.get(f"/api/v1/contents/{content_id}/chain")
+    assert chain_resp_2.status_code == 200
+    chain_2 = chain_resp_2.json()
+    assert len(chain_2) == 3
+    assert chain_2[0]["_id"] == root_prompt_id
+    assert chain_2[1]["_id"] == second_prompt_id
+    assert chain_2[1]["parent_prompt_id"] == root_prompt_id
+    assert chain_2[2]["parent_prompt_id"] == second_prompt_id
+    assert chain_2[2]["prompt"] == improve_payload_2["prompt"]
+    third_prompt_id = chain_2[2]["_id"]
+
+    # Verify lineage lookup via GET /prompts/chain/{third_prompt_id}
+    lineage_resp = await auth_client.get(f"/api/v1/prompts/chain/{third_prompt_id}")
+    assert lineage_resp.status_code == 200
+    lineage = lineage_resp.json()
+    assert len(lineage) == 3
+    assert [p["_id"] for p in lineage] == [root_prompt_id, second_prompt_id, third_prompt_id]
+
+

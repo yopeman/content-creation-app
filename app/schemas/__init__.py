@@ -2,6 +2,7 @@ from app.schemas.content import (
     ContentCreate,
     ContentDetailSchema,
     ContentGenerateRequest,
+    ContentImproveRequest,
     ContentResponse,
     ContentUpdate,
 )
@@ -52,6 +53,7 @@ __all__ = [
     "ContentDetailSchema",
     "ContentCreate",
     "ContentGenerateRequest",
+    "ContentImproveRequest",
     "ContentUpdate",
     "ContentResponse",
     "PromptResponse",

@@ -35,6 +35,25 @@ async def list_prompts(
     return await Prompt.find(*query).sort("-created_at").to_list()
 
 
+@router.get("/chain/{prompt_id}", response_model=List[PromptResponse], summary="Get Prompt Lineage Chain")
+async def get_prompt_lineage(
+    prompt_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user),
+):
+    """Returns the full lineage of prompts from root ancestor down to prompt_id in chronological order."""
+    prompt_record = await Prompt.find_one(
+        Prompt.id == prompt_id,
+        Prompt.user_id == current_user.id,
+        Prompt.deleted_at == None,
+    )
+    if not prompt_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Prompt record not found")
+
+    from app.services.content_agent import get_prompt_chain
+    chain = await get_prompt_chain(prompt_id)
+    return chain
+
+
 @router.get("/{prompt_id}", response_model=PromptResponse, summary="Get Prompt Details")
 async def get_prompt(prompt_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
     """Retrieves execution details, model, token count, and response for a specific prompt."""

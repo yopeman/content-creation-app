@@ -34,6 +34,31 @@ class ContentGenerateRequest(BaseModel):
         None,
         description="Optional list of formats to produce (defaults to all supported: text, image, audio, video)",
     )
+    parent_prompt_id: Optional[PydanticObjectId] = Field(
+        None,
+        description="Optional parent prompt ID in the prompt chain",
+    )
+    content_id: Optional[PydanticObjectId] = Field(
+        None,
+        description="Optional existing content ID if improving/updating existing content",
+    )
+
+
+class ContentImproveRequest(BaseModel):
+    """Payload to iteratively improve existing content using the LangChain prompt chain."""
+    instruction: str = Field(
+        ...,
+        description="Feedback or instruction on how to refine/improve the content (e.g. 'Make it punchier with bullet points, regenerate audio and video')",
+        min_length=2,
+    )
+    formats: Optional[List[ContentType]] = Field(
+        None,
+        description="List of formats to regenerate/update. If omitted, all existing formats on this content are updated.",
+    )
+    parent_prompt_id: Optional[PydanticObjectId] = Field(
+        None,
+        description="Explicit parent prompt ID to branch from. If omitted, chains from the latest prompt for this content.",
+    )
 
 
 class ContentUpdate(BaseModel):
