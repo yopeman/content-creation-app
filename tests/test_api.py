@@ -118,10 +118,21 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
     # Auto-resolved channel name bound from Telegram API
     assert platform_data["account_name"] == "Telegram Channel @tech_dispatch"
     assert platform_data["platform_account_id"] == "@tech_dispatch"
-    assert platform_data["details"]["bot_token"] == "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    # Verify bot_token and encrypted_bot_token are completely absent from API response
+    assert "bot_token" not in platform_data["details"]
+    assert "encrypted_bot_token" not in platform_data["details"]
     assert platform_data["details"]["chat_id"] == "@tech_dispatch"
     assert "_id" in platform_data
     platform_id = platform_data["_id"]
+
+    # 4b. Verify bot_token is stored encrypted in DB and decryptable by backend
+    from app.models.platform import Platform
+    from beanie import PydanticObjectId
+    db_platform = await Platform.get(PydanticObjectId(platform_id))
+    assert db_platform is not None
+    assert "encrypted_bot_token" in db_platform.details
+    assert db_platform.details["encrypted_bot_token"] != "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    assert db_platform.get_decrypted_bot_token() == "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
 
     # 5. Duplicate Telegram connection should fail (400 Bad Request)
     dup_resp = await auth_client.post(

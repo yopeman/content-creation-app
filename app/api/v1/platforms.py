@@ -3,6 +3,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import get_current_user
+from app.core.security import encrypt_secret
 from app.models.enums import PlatformCode, PlatformStatus
 from app.models.platform import Platform
 from app.models.user import User
@@ -72,7 +73,7 @@ async def connect_telegram_platform(
     chat_info = await get_telegram_chat_info(payload.bot_token, payload.chat_id)
 
     details = {
-        "bot_token": payload.bot_token,
+        "encrypted_bot_token": encrypt_secret(payload.bot_token),
         "chat_id": payload.chat_id,
         "type": chat_info.get("type"),
         "username": chat_info.get("username"),
@@ -124,7 +125,7 @@ async def edit_platform_connection(
     bot_token = update_data.pop("bot_token", None)
     chat_id = update_data.pop("chat_id", None)
     if bot_token is not None:
-        platform.details["bot_token"] = bot_token
+        platform.details["encrypted_bot_token"] = encrypt_secret(bot_token)
     if chat_id is not None:
         platform.details["chat_id"] = chat_id
         if not update_data.get("platform_account_id"):
@@ -153,7 +154,7 @@ async def sync_platform(platform_id: PydanticObjectId, current_user: User = Depe
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform account not found")
 
     if platform.code == PlatformCode.TG:
-        bot_token = platform.details.get("bot_token")
+        bot_token = platform.get_decrypted_bot_token()
         chat_id = platform.details.get("chat_id") or platform.platform_account_id
         if not bot_token or not chat_id:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Missing Telegram credentials to sync.")

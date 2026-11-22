@@ -10,13 +10,22 @@ class Platform(Document):
     code: PlatformCode
     account_name: Optional[str] = None          # e.g., "My Telegram Channel", "Business FB Page"
     platform_account_id: Optional[str] = None   # External Account / Channel / Page ID
-    details: Dict[str, Any] = Field(default_factory=dict)  # OAuth tokens, scopes, secrets
+    details: Dict[str, Any] = Field(default_factory=dict)  # Stored encrypted tokens, chat IDs, settings
     expires_at: Optional[datetime] = None
     status: PlatformStatus = PlatformStatus.CONNECTED
     last_error: Optional[str] = None
     deleted_at: Optional[datetime] = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+    def get_decrypted_bot_token(self) -> Optional[str]:
+        """Decrypts and returns the stored Telegram bot token for backend operations."""
+        from app.core.security import decrypt_secret
+
+        enc_token = self.details.get("encrypted_bot_token") or self.details.get("bot_token")
+        if not enc_token:
+            return None
+        return decrypt_secret(enc_token)
 
     class Settings:
         name = "platforms"

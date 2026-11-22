@@ -1,6 +1,9 @@
+import base64
 from datetime import datetime, timedelta, timezone
+import hashlib
 from typing import Any, Optional
 import bcrypt
+from cryptography.fernet import Fernet
 import jwt
 from app.core.config import settings
 
@@ -22,3 +25,25 @@ def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] =
     to_encode = {"exp": expire, "sub": str(subject)}
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+
+def _get_fernet() -> Fernet:
+    """Derives a Fernet key deterministically from the application SECRET_KEY."""
+    derived_key = base64.urlsafe_b64encode(hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest())
+    return Fernet(derived_key)
+
+
+def encrypt_secret(plain_text: str) -> str:
+    """Encrypts a sensitive plaintext secret (e.g. Telegram bot token) using authenticated Fernet (AES-128-CBC + HMAC)."""
+    if not plain_text:
+        return plain_text
+    fernet = _get_fernet()
+    return fernet.encrypt(plain_text.encode("utf-8")).decode("utf-8")
+
+
+def decrypt_secret(cipher_text: str) -> str:
+    """Decrypts an encrypted ciphertext secret back into plaintext."""
+    if not cipher_text:
+        return cipher_text
+    fernet = _get_fernet()
+    return fernet.decrypt(cipher_text.encode("utf-8")).decode("utf-8")
