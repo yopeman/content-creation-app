@@ -34,7 +34,6 @@ class PostTargetResponse(PostTargetBase):
 
 
 class PostCreate(BaseModel):
-    user_id: Optional[PydanticObjectId] = None
     content_id: PydanticObjectId
     plan_item_id: Optional[PydanticObjectId] = None
     scheduled_at: Optional[datetime] = None

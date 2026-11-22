@@ -18,7 +18,6 @@ class ContentDetailSchema(BaseModel):
 
 
 class ContentCreate(BaseModel):
-    user_id: Optional[PydanticObjectId] = None
     title: str
     details: List[ContentDetailSchema] = Field(default_factory=list)
     status: ContentStatus = ContentStatus.DRAFT

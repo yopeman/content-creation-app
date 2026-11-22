@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.post("", response_model=PostResponse, status_code=status.HTTP_201_CREATED)
 async def create_post(payload: PostCreate, current_user: User = Depends(get_current_user)):
-    user_id = payload.user_id or current_user.id
+    user_id = current_user.id
 
     post = Post(
         user_id=user_id,
@@ -63,8 +63,12 @@ async def list_posts(current_user: User = Depends(get_current_user)):
 
 @router.get("/{post_id}", response_model=PostResponse)
 async def get_post(post_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    post = await Post.get(post_id)
-    if not post or post.deleted_at is not None:
+    post = await Post.find_one(
+        Post.id == post_id,
+        Post.user_id == current_user.id,
+        Post.deleted_at == None,  # noqa: E711
+    )
+    if not post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
     targets = await PostTarget.find(

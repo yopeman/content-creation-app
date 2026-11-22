@@ -65,7 +65,7 @@ async def generate_plan_item_content(
 
 @router.post("", response_model=PlanResponse, status_code=status.HTTP_201_CREATED)
 async def create_plan(payload: PlanCreate, current_user: User = Depends(get_current_user)):
-    user_id = payload.user_id or current_user.id
+    user_id = current_user.id
 
     plan = Plan(
         user_id=user_id,
@@ -118,8 +118,12 @@ async def list_plans(current_user: User = Depends(get_current_user)):
 
 @router.get("/{plan_id}", response_model=PlanResponse)
 async def get_plan(plan_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    plan = await Plan.get(plan_id)
-    if not plan or plan.deleted_at is not None:
+    plan = await Plan.find_one(
+        Plan.id == plan_id,
+        Plan.user_id == current_user.id,
+        Plan.deleted_at == None,  # noqa: E711
+    )
+    if not plan:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
 
     items = await PlanItem.find(

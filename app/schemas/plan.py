@@ -31,7 +31,6 @@ class PlanItemResponse(PlanItemBase):
 
 
 class PlanCreate(BaseModel):
-    user_id: Optional[PydanticObjectId] = None
     idea: str
     context: Optional[str] = None
     number_of_content: int = 1
