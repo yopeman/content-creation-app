@@ -1,5 +1,7 @@
+import mimetypes
 from datetime import datetime, timezone
-from typing import List
+from pathlib import Path
+from typing import List, Optional
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from app.api.deps import get_current_user
@@ -15,19 +17,64 @@ from app.services.storage import storage_service
 
 router = APIRouter()
 
+IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg", ".bmp", ".ico", ".tiff"}
+VIDEO_EXTENSIONS = {".mp4", ".mov", ".avi", ".mkv", ".webm", ".m4v", ".flv", ".wmv"}
+AUDIO_EXTENSIONS = {".mp3", ".wav", ".ogg", ".m4a", ".flac", ".aac", ".wma"}
+
+
+def detect_media_type(file: UploadFile) -> ContentType:
+    """Detects media ContentType (image, audio, video) from UploadFile MIME type and extension."""
+    content_type = (file.content_type or "").lower()
+    filename = (file.filename or "").lower()
+
+    if content_type.startswith("image/"):
+        return ContentType.IMAGE
+    if content_type.startswith("video/"):
+        return ContentType.VIDEO
+    if content_type.startswith("audio/"):
+        return ContentType.AUDIO
+
+    # Guess MIME type by filename
+    guessed_type, _ = mimetypes.guess_type(filename)
+    if guessed_type:
+        if guessed_type.startswith("image/"):
+            return ContentType.IMAGE
+        if guessed_type.startswith("video/"):
+            return ContentType.VIDEO
+        if guessed_type.startswith("audio/"):
+            return ContentType.AUDIO
+
+    # Fallback to extension check
+    ext = Path(filename).suffix.lower()
+    if ext in IMAGE_EXTENSIONS:
+        return ContentType.IMAGE
+    if ext in VIDEO_EXTENSIONS:
+        return ContentType.VIDEO
+    if ext in AUDIO_EXTENSIONS:
+        return ContentType.AUDIO
+
+    raise HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail=f"Unable to identify media type for file '{file.filename}'. Supported formats: image, audio, video.",
+    )
+
 
 @router.post("/upload-media", summary="Upload media file to local storage")
 async def upload_media(
     file: UploadFile = File(...),
-    media_type: ContentType = Form(...),
+    media_type: Optional[ContentType] = Form(None),
     current_user: User = Depends(get_current_user),
 ):
-    """Uploads a local media file (image, audio, video) and returns its storage path and web URL."""
-    result = await storage_service.save_file(file, subfolder=media_type.value)
+    """Uploads a local media file (image, audio, video) and returns its storage path and web URL.
+
+    Automatically detects the media type from the file's MIME type or extension if media_type is omitted.
+    """
+    resolved_type = media_type or detect_media_type(file)
+    result = await storage_service.save_file(file, subfolder=resolved_type.value)
     return {
         "status": "success",
         "detail": {
-            "type": media_type,
+            "type": resolved_type,
             "path": result["path"],
             "url": result["url"],
             "mime_type": result["mime_type"],

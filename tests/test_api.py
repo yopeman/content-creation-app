@@ -208,7 +208,7 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_local_file_upload_and_content_creation(auth_client: AsyncClient):
-    # 1. Upload a simulated image file to local storage
+    # 1. Upload a simulated image file to local storage (explicit media_type)
     fake_image_bytes = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDRtest_image_data"
     files = {"file": ("thumbnail.png", io.BytesIO(fake_image_bytes), "image/png")}
     data = {"media_type": "image"}
@@ -217,10 +217,24 @@ async def test_local_file_upload_and_content_creation(auth_client: AsyncClient):
     assert upload_resp.status_code == 200
     upload_result = upload_resp.json()
     assert upload_result["status"] == "success"
+    assert upload_result["detail"]["type"] == "image"
     assert upload_result["detail"]["url"].startswith("/uploads/image/")
     assert upload_result["detail"]["file_size_bytes"] == len(fake_image_bytes)
 
     saved_path = upload_result["detail"]["path"]
+
+    # 1b. Upload without media_type (auto-detected from file)
+    fake_video_bytes = b"\x00\x00\x00 ftypisomtest_video_data"
+    files_video = {"file": ("sample.mp4", io.BytesIO(fake_video_bytes), "video/mp4")}
+    auto_upload_resp = await auth_client.post("/api/v1/contents/upload-media", files=files_video)
+    assert auto_upload_resp.status_code == 200
+    assert auto_upload_resp.json()["detail"]["type"] == "video"
+    assert auto_upload_resp.json()["detail"]["url"].startswith("/uploads/video/")
+
+    # 1c. Upload unsupported file fails with 400
+    bad_file = {"file": ("script.sh", io.BytesIO(b"echo hello"), "text/x-shellscript")}
+    bad_upload_resp = await auth_client.post("/api/v1/contents/upload-media", files=bad_file)
+    assert bad_upload_resp.status_code == 400
 
     # 2. Create Content using this uploaded media detail
     content_payload = {
