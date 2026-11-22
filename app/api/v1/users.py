@@ -1,16 +1,16 @@
-from typing import List
-from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import get_current_user
-from app.core.security import hash_password
+from app.core.security import create_access_token, hash_password, verify_password
+from app.models.enums import UserStatus
 from app.models.user import User
-from app.schemas.user import UserCreate, UserResponse, UserUpdate
+from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse
 
 router = APIRouter()
 
 
-@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreate):
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED, include_in_schema=False)
+async def register(payload: UserCreate):
     existing = await User.find_one(User.email == payload.email)
     if existing:
         raise HTTPException(
@@ -29,19 +29,30 @@ async def create_user(payload: UserCreate):
     return user
 
 
+@router.post("/login", response_model=TokenResponse)
+async def login(payload: UserLogin):
+    user = await User.find_one(User.email == payload.email, User.deleted_at == None)  # noqa: E711
+    if not user or not user.password_hash or not verify_password(payload.password, user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Incorrect email or password",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    if user.status != UserStatus.ACTIVE:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is inactive or suspended",
+        )
+
+    access_token = create_access_token(subject=str(user.id))
+    return TokenResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user, from_attributes=True),
+    )
+
+
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
-
-
-@router.get("", response_model=List[UserResponse])
-async def list_users():
-    return await User.find(User.deleted_at == None).to_list()  # noqa: E711
-
-
-@router.get("/{user_id}", response_model=UserResponse)
-async def get_user(user_id: PydanticObjectId):
-    user = await User.get(user_id)
-    if not user or user.deleted_at is not None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    return user

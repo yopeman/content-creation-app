@@ -23,7 +23,7 @@ backend/
 │   │   ├── router.py            # Central API v1 router
 │   │   └── v1/
 │   │       ├── health.py        # System health & MongoDB ping check
-│   │       ├── users.py         # User management
+│   │       ├── users.py         # User authentication: register, login, & me (protected)
 │   │       ├── platforms.py     # Connected social media accounts (TG, FB, YB, TK, IG, LN)
 │   │       ├── contents.py      # Content drafts & /upload-media local storage
 │   │       ├── plans.py         # Content campaign plans & plan items
