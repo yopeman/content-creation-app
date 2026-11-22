@@ -52,7 +52,8 @@ async def auth_client(async_client: AsyncClient) -> AsyncClient:
 @pytest.fixture(autouse=True)
 def mock_telegram_api():
     """Mocks outbound Telegram Bot API calls to ensure test runs are fast, isolated, and offline."""
-    with patch("app.api.v1.platforms.get_telegram_chat_info") as mock_info:
+    with patch("app.api.v1.platforms.get_telegram_chat_info") as mock_info, \
+         patch("app.api.v1.posts.send_telegram_post") as mock_send:
         async def fake_get_chat_info(bot_token: str, chat_id: str):
             if "invalid" in bot_token.lower():
                 from fastapi import HTTPException
@@ -67,5 +68,28 @@ def mock_telegram_api():
                 "raw": {},
             }
 
+        async def fake_send_post(
+            bot_token: str,
+            chat_id: str,
+            text=None,
+            media_path=None,
+            media_type=None,
+            scheduled_at=None,
+            payload_override=None,
+        ):
+            if "invalid" in bot_token.lower():
+                return {
+                    "success": False,
+                    "error": "Telegram API error: Invalid bot token",
+                }
+            clean_username = chat_id.lstrip("@")
+            return {
+                "success": True,
+                "message_id": "888123",
+                "external_url": f"https://t.me/{clean_username}/888123",
+                "raw": {"message_id": 888123},
+            }
+
         mock_info.side_effect = fake_get_chat_info
+        mock_send.side_effect = fake_send_post
         yield mock_info

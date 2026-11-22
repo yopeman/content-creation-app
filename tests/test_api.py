@@ -339,7 +339,7 @@ async def test_plan_and_post_flow(auth_client: AsyncClient):
     assert plan_data["idea"] == "Q4 AI Trends Campaign"
     assert len(plan_data["items"]) == 1
 
-    # 4. Schedule a Post with a PostTarget
+    # 4. Schedule a Post with a PostTarget (dispatches to Telegram with native schedule)
     post_resp = await auth_client.post(
         "/api/v1/posts",
         json={
@@ -358,7 +358,58 @@ async def test_plan_and_post_flow(auth_client: AsyncClient):
     post_data = post_resp.json()
     assert post_data["status"] == "scheduled"
     assert len(post_data["targets"]) == 1
-    assert post_data["targets"][0]["platform_code"] == "TG"
+    target_data = post_data["targets"][0]
+    assert target_data["platform_code"] == "TG"
+    assert target_data["status"] == "published"
+    assert target_data["external_post_id"] == "888123"
+    assert target_data["external_url"] == "https://t.me/yope_news/888123"
+    assert target_data["published_at"] is not None
+
+    # 5. Create Draft Post and publish via POST /posts/{id}/publish
+    draft_resp = await auth_client.post(
+        "/api/v1/posts",
+        json={
+            "content_id": content_id,
+            "status": "draft",
+            "targets": [
+                {
+                    "platform_id": platform_id,
+                    "platform_code": "TG",
+                }
+            ],
+        },
+    )
+    assert draft_resp.status_code == 201
+    draft_data = draft_resp.json()
+    assert draft_data["status"] == "draft"
+    assert draft_data["targets"][0]["status"] == "pending"
+    draft_id = draft_data["_id"]
+
+    publish_resp = await auth_client.post(f"/api/v1/posts/{draft_id}/publish")
+    assert publish_resp.status_code == 200
+    published_data = publish_resp.json()
+    assert published_data["status"] == "published"
+    assert published_data["targets"][0]["status"] == "published"
+    assert published_data["targets"][0]["external_post_id"] == "888123"
+
+    # 6. Direct publish with status inside target (inferred as published)
+    target_pub_resp = await auth_client.post(
+        "/api/v1/posts",
+        json={
+            "content_id": content_id,
+            "targets": [
+                {
+                    "platform_id": platform_id,
+                    "platform_code": "TG",
+                    "status": "published",
+                }
+            ],
+        },
+    )
+    assert target_pub_resp.status_code == 201
+    assert target_pub_resp.json()["status"] == "published"
+    assert target_pub_resp.json()["targets"][0]["status"] == "published"
+    assert target_pub_resp.json()["targets"][0]["external_post_id"] == "888123"
 
 
 @pytest.mark.asyncio

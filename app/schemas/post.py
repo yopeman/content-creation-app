@@ -13,7 +13,7 @@ class PostTargetBase(BaseModel):
 
 
 class PostTargetCreate(PostTargetBase):
-    pass
+    status: Optional[str] = None
 
 
 class PostTargetResponse(PostTargetBase):
@@ -37,7 +37,7 @@ class PostCreate(BaseModel):
     content_id: PydanticObjectId
     plan_item_id: Optional[PydanticObjectId] = None
     scheduled_at: Optional[datetime] = None
-    status: PostStatus = PostStatus.DRAFT
+    status: Optional[PostStatus] = None
     targets: List[PostTargetCreate] = Field(default_factory=list)
 
 
