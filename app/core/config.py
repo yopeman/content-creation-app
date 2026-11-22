@@ -28,6 +28,10 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     ALGORITHM: str = "HS256"
 
+    # AI / LLM (Groq & LangChain)
+    GROQ_API_KEY: str = ""
+    GROQ_MODEL: str = "openai/gpt-oss-120b"
+
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 

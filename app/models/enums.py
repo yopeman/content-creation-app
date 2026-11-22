@@ -25,6 +25,7 @@ class PlatformStatus(str, Enum):
 class PromptType(str, Enum):
     CONTENT = "content"
     PLAN = "plan"
+    PLAN_ITEM = "plan_item"
 
 
 class PromptStatus(str, Enum):

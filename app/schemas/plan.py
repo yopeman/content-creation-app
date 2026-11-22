@@ -39,6 +39,13 @@ class PlanCreate(BaseModel):
     items: List[PlanItemCreate] = Field(default_factory=list)
 
 
+class PlanGenerateRequest(BaseModel):
+    idea: str = Field(..., description="Overarching campaign or content plan concept", min_length=3)
+    context: Optional[str] = Field(None, description="Campaign context, target audience, or channel focus")
+    number_of_content: int = Field(3, description="Number of content items to schedule in this plan", ge=1, le=20)
+    permission: str = "review_required"
+
+
 class PlanResponse(BaseModel):
     id: PydanticObjectId = Field(alias="_id")
     user_id: PydanticObjectId
@@ -52,4 +59,3 @@ class PlanResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(populate_by_name=True)
-

@@ -1,11 +1,13 @@
 from app.schemas.content import (
     ContentCreate,
     ContentDetailSchema,
+    ContentGenerateRequest,
     ContentResponse,
     ContentUpdate,
 )
 from app.schemas.plan import (
     PlanCreate,
+    PlanGenerateRequest,
     PlanItemCreate,
     PlanItemResponse,
     PlanResponse,
@@ -23,6 +25,9 @@ from app.schemas.post import (
     PostResponse,
     PostTargetCreate,
     PostTargetResponse,
+)
+from app.schemas.prompt import (
+    PromptResponse,
 )
 from app.schemas.user import (
     TokenResponse,
@@ -46,13 +51,16 @@ __all__ = [
     "PlatformResponse",
     "ContentDetailSchema",
     "ContentCreate",
+    "ContentGenerateRequest",
     "ContentUpdate",
     "ContentResponse",
+    "PromptResponse",
     "PostCreate",
     "PostTargetCreate",
     "PostTargetResponse",
     "PostResponse",
     "PlanCreate",
+    "PlanGenerateRequest",
     "PlanItemCreate",
     "PlanItemResponse",
     "PlanResponse",

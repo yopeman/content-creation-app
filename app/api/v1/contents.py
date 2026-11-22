@@ -6,7 +6,13 @@ from app.api.deps import get_current_user
 from app.models.content import Content, ContentDetail
 from app.models.enums import ContentType
 from app.models.user import User
-from app.schemas.content import ContentCreate, ContentResponse, ContentUpdate
+from app.schemas.content import (
+    ContentCreate,
+    ContentGenerateRequest,
+    ContentResponse,
+    ContentUpdate,
+)
+from app.services.content_agent import run_content_generation_agent
 from app.services.storage import storage_service
 
 router = APIRouter()
@@ -31,6 +37,27 @@ async def upload_media(
             "original_filename": result["original_filename"],
         },
     }
+
+
+@router.post("/generate", response_model=ContentResponse, status_code=status.HTTP_201_CREATED, summary="AI Generate Content with Tools")
+async def generate_content(
+    payload: ContentGenerateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Generates multi-modal content (text, image via Pillow, audio via gTTS, and video via MoviePy/ffmpeg) using LangChain with Groq.
+
+    Saves sub-prompts in ContentDetail.script, local paths in ContentDetail.path, and content text in ContentDetail.text.
+    Logs execution in the Prompt collection.
+    """
+    content, _ = await run_content_generation_agent(
+        user_id=current_user.id,
+        prompt=payload.prompt,
+        title=payload.title,
+        plan_id=payload.plan_id,
+        plan_item_id=payload.plan_item_id,
+        target_formats=payload.formats,
+    )
+    return content
 
 
 @router.post("", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)

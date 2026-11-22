@@ -317,3 +317,106 @@ async def test_plan_and_post_flow(auth_client: AsyncClient):
     assert post_data["status"] == "scheduled"
     assert len(post_data["targets"]) == 1
     assert post_data["targets"][0]["platform_code"] == "TG"
+
+
+@pytest.mark.asyncio
+async def test_ai_content_generation_agent(auth_client: AsyncClient):
+    # 1. Call AI content generation endpoint
+    gen_payload = {
+        "prompt": "Top 5 Tips for Developer Productivity in 2026",
+        "title": "Top 5 Developer Productivity Tips",
+        "formats": ["text", "image", "audio", "video"],
+    }
+    gen_resp = await auth_client.post("/api/v1/contents/generate", json=gen_payload)
+    assert gen_resp.status_code == 201
+    content_data = gen_resp.json()
+    assert content_data["title"] == "Top 5 Developer Productivity Tips"
+    assert "_id" in content_data
+    content_id = content_data["_id"]
+
+    # 2. Verify all 4 modalities and field mappings
+    details = content_data["details"]
+    assert len(details) == 4
+
+    # Text detail: script has sub-prompt, text has generated content, path is None
+    text_item = next(d for d in details if d["type"] == "text")
+    assert text_item["script"] is not None
+    assert len(text_item["script"]) > 0
+    assert text_item["text"] is not None
+    assert len(text_item["text"]) > 0
+    assert text_item["path"] is None
+
+    # Image detail: script has sub-prompt, path has local file, text is None
+    img_item = next(d for d in details if d["type"] == "image")
+    assert img_item["script"] is not None
+    assert img_item["path"] is not None
+    assert img_item["path"].startswith("uploads/image/")
+    assert img_item["mime_type"] == "image/png"
+
+    # Audio detail: script has sub-prompt, path has local MP3 file
+    audio_item = next(d for d in details if d["type"] == "audio")
+    assert audio_item["script"] is not None
+    assert audio_item["path"] is not None
+    assert audio_item["path"].startswith("uploads/audio/")
+    assert audio_item["mime_type"] == "audio/mpeg"
+
+    # Video detail: script has sub-prompt, path has local MP4 file
+    video_item = next(d for d in details if d["type"] == "video")
+    assert video_item["script"] is not None
+    assert video_item["path"] is not None
+    assert video_item["path"].startswith("uploads/video/")
+    assert video_item["mime_type"] == "video/mp4"
+
+    # 3. Verify Prompt collection record logged for this generation
+    prompts_resp = await auth_client.get(f"/api/v1/prompts?content_id={content_id}")
+    assert prompts_resp.status_code == 200
+    prompts_list = prompts_resp.json()
+    assert len(prompts_list) == 1
+    prompt_record = prompts_list[0]
+    assert prompt_record["type"] == "content"
+    assert prompt_record["status"] == "done"
+    assert prompt_record["prompt"] == gen_payload["prompt"]
+    assert prompt_record["content_id"] == content_id
+    assert prompt_record["model"] == "openai/gpt-oss-120b"
+
+
+@pytest.mark.asyncio
+async def test_ai_plan_and_plan_item_generation(auth_client: AsyncClient):
+    # 1. AI Campaign Plan Generation (logs type=PromptType.PLAN)
+    plan_gen_payload = {
+        "idea": "Developer Tools Launch 2026",
+        "context": "DevOps and FullStack Engineers",
+        "number_of_content": 2,
+    }
+    plan_resp = await auth_client.post("/api/v1/plans/generate", json=plan_gen_payload)
+    assert plan_resp.status_code == 201
+    plan_data = plan_resp.json()
+    assert plan_data["idea"] == "Developer Tools Launch 2026"
+    assert len(plan_data["items"]) == 2
+    plan_id = plan_data["_id"]
+    plan_item_id = plan_data["items"][0]["_id"]
+
+    # Verify Prompt record logged for the plan
+    plan_prompts_resp = await auth_client.get(f"/api/v1/prompts?plan_id={plan_id}")
+    assert plan_prompts_resp.status_code == 200
+    plan_prompts = plan_prompts_resp.json()
+    assert any(p["type"] == "plan" and p["plan_id"] == plan_id for p in plan_prompts)
+
+    # 2. AI Content Generation for a specific Plan Item (logs type=PromptType.PLAN_ITEM)
+    item_gen_resp = await auth_client.post(f"/api/v1/plans/{plan_id}/items/{plan_item_id}/generate-content")
+    assert item_gen_resp.status_code == 201
+    item_content = item_gen_resp.json()
+    assert "_id" in item_content
+    generated_content_id = item_content["_id"]
+    assert len(item_content["details"]) == 4
+
+    # Verify Prompt record logged for this specific plan item
+    item_prompts_resp = await auth_client.get(f"/api/v1/prompts?plan_item_id={plan_item_id}")
+    assert item_prompts_resp.status_code == 200
+    item_prompts = item_prompts_resp.json()
+    assert len(item_prompts) == 1
+    assert item_prompts[0]["type"] == "plan_item"
+    assert item_prompts[0]["content_id"] == generated_content_id
+    assert item_prompts[0]["plan_id"] == plan_id
+
+

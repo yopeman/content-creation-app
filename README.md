@@ -25,7 +25,8 @@ backend/
 │   │       ├── health.py        # System health & MongoDB ping check
 │   │       ├── users.py         # User authentication: register, login, & me (protected)
 │   │       ├── platforms.py     # Connected social media accounts (TG, FB, YB, TK, IG, LN)
-│   │       ├── contents.py      # Content drafts & /upload-media local storage
+│   │       ├── contents.py      # Content drafts, /upload-media & /generate AI multi-modal agent
+│   │       ├── prompts.py       # Prompt history and token execution tracking
 │   │       ├── plans.py         # Content campaign plans & plan items
 │   │       └── posts.py         # Scheduled posts & per-platform post targets
 │   ├── core/
@@ -45,7 +46,10 @@ backend/
 │   │   └── plan_item.py         # PlanItem collection
 │   ├── schemas/                 # Request & Response DTOs
 │   ├── services/
-│   │   └── storage.py           # Local file storage service (aiofiles)
+│   │   ├── content_agent.py     # LangChain + Groq multi-modal content generation agent
+│   │   ├── content_tools.py     # Pillow image, gTTS audio, MoviePy/ffmpeg video tools
+│   │   ├── storage.py           # Local file storage service (aiofiles)
+│   │   └── telegram.py          # Telegram Bot API integration & getChat verification
 │   └── main.py                  # FastAPI application with async lifespan
 ├── tests/
 │   ├── conftest.py              # Async test fixtures & isolated test database
