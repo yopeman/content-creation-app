@@ -233,20 +233,3 @@ async def disconnect_platform(platform_id: PydanticObjectId, current_user: User 
     platform.updated_at = datetime.now(timezone.utc)
     await platform.save()
 
-
-@router.post("/{platform_id}/disconnect", response_model=PlatformResponse, summary="Disconnect Platform (RPC)")
-async def disconnect_platform_rpc(platform_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    """Disconnect and revoke access for a connected platform account (returning updated record)."""
-    platform = await Platform.find_one(
-        Platform.id == platform_id,
-        Platform.user_id == current_user.id,
-        Platform.deleted_at == None,  # noqa: E711
-    )
-    if not platform:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Platform account not found")
-
-    platform.status = PlatformStatus.REVOKED
-    platform.deleted_at = datetime.now(timezone.utc)
-    platform.updated_at = datetime.now(timezone.utc)
-    await platform.save()
-    return platform
