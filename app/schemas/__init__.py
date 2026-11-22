@@ -16,6 +16,7 @@ from app.schemas.platform import (
     PlatformUpdate,
     SupportedPlatform,
     TelegramPlatformCreate,
+    TelegramPlatformUpdate,
 )
 from app.schemas.post import (
     PostCreate,
@@ -39,6 +40,7 @@ __all__ = [
     "UserResponse",
     "SupportedPlatform",
     "TelegramPlatformCreate",
+    "TelegramPlatformUpdate",
     "PlatformCreate",
     "PlatformUpdate",
     "PlatformResponse",

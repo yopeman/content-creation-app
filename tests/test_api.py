@@ -165,7 +165,7 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
     assert sync_resp.status_code == 200
     assert sync_resp.json()["account_name"] == "Telegram Channel @tech_dispatch"
 
-    # 9. Edit connection
+    # 9. Edit general platform connection metadata
     edit_resp = await auth_client.patch(
         f"/api/v1/platforms/{platform_id}",
         json={"account_name": "Custom Renamed Channel"},
@@ -173,6 +173,25 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
     assert edit_resp.status_code == 200
     edited_data = edit_resp.json()
     assert edited_data["account_name"] == "Custom Renamed Channel"
+
+    # 9b. Edit Telegram credentials via specialized PATCH /api/v1/platforms/tg/{platform_id}
+    tg_edit_resp = await auth_client.patch(
+        f"/api/v1/platforms/tg/{platform_id}",
+        json={
+            "bot_token": "999999:ZZZ-NEW-TOKEN-abcdefghijklmn",
+            "chat_id": "@tech_dispatch_v2",
+        },
+    )
+    assert tg_edit_resp.status_code == 200
+    tg_edited_data = tg_edit_resp.json()
+    assert tg_edited_data["platform_account_id"] == "@tech_dispatch_v2"
+    assert "bot_token" not in tg_edited_data["details"]
+    assert "encrypted_bot_token" not in tg_edited_data["details"]
+
+    # Verify updated token is encrypted in DB and decryptable by backend
+    updated_db = await Platform.get(PydanticObjectId(platform_id))
+    assert updated_db.get_decrypted_bot_token() == "999999:ZZZ-NEW-TOKEN-abcdefghijklmn"
+    assert updated_db.details["chat_id"] == "@tech_dispatch_v2"
 
     # 10. Disconnect platform
     disconnect_resp = await auth_client.delete(f"/api/v1/platforms/{platform_id}")

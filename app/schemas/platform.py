@@ -18,6 +18,11 @@ class TelegramPlatformCreate(BaseModel):
     chat_id: str = Field(..., description="Target Channel username (e.g. @mychannel) or numeric chat ID")
 
 
+class TelegramPlatformUpdate(BaseModel):
+    bot_token: Optional[str] = Field(None, description="Updated Telegram Bot API token", min_length=10)
+    chat_id: Optional[str] = Field(None, description="Updated Target Channel username or numeric chat ID")
+
+
 class PlatformBase(BaseModel):
     code: PlatformCode
     account_name: Optional[str] = None
@@ -32,14 +37,10 @@ class PlatformCreate(PlatformBase):
 
 
 class PlatformUpdate(BaseModel):
+    """General platform update schema (for general metadata, status, etc.)."""
     account_name: Optional[str] = None
-    platform_account_id: Optional[str] = None
-    bot_token: Optional[str] = None
-    chat_id: Optional[str] = None
-    details: Optional[Dict[str, Any]] = None
     status: Optional[PlatformStatus] = None
     expires_at: Optional[datetime] = None
-    last_error: Optional[str] = None
 
 
 class PlatformResponse(PlatformBase):
