@@ -1,23 +1,15 @@
 from datetime import datetime, timezone
 from typing import List
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from app.api.deps import get_current_user
 from app.models.content import Content, ContentDetail
 from app.models.enums import ContentType
-from app.models.prompt import Prompt
 from app.models.user import User
 from app.schemas.content import (
     ContentCreate,
-    ContentGenerateRequest,
-    ContentImproveRequest,
     ContentResponse,
     ContentUpdate,
-)
-from app.schemas.prompt import PromptResponse
-from app.services.content_agent import (
-    run_content_generation_agent,
-    run_content_improvement_agent,
 )
 from app.services.storage import storage_service
 
@@ -45,84 +37,13 @@ async def upload_media(
     }
 
 
-@router.post("/generate", response_model=ContentResponse, status_code=status.HTTP_201_CREATED, summary="AI Generate Content with Tools")
-async def generate_content(
-    payload: ContentGenerateRequest,
-    current_user: User = Depends(get_current_user),
-):
-    """Generates multi-modal content (text, image via Pillow, audio via gTTS, and video via MoviePy/ffmpeg) using LangChain with Groq.
-
-    Saves sub-prompts in ContentDetail.script, local paths in ContentDetail.path, and content text in ContentDetail.text.
-    Logs execution in the Prompt collection.
-    If content_id is provided, continues the prompt chain to improve existing content.
-    """
-    if payload.content_id:
-        content, _ = await run_content_improvement_agent(
-            user_id=current_user.id,
-            content_id=payload.content_id,
-            instruction=payload.prompt,
-            target_formats=payload.formats,
-            parent_prompt_id=payload.parent_prompt_id,
-        )
-        return content
-
-    content, _ = await run_content_generation_agent(
-        user_id=current_user.id,
-        prompt=payload.prompt,
-        title=payload.title,
-        plan_id=payload.plan_id,
-        plan_item_id=payload.plan_item_id,
-        target_formats=payload.formats,
-        parent_prompt_id=payload.parent_prompt_id,
-    )
-    return content
-
-
-@router.post("/{content_id}/improve", response_model=ContentResponse, summary="Improve Content via Prompt Chain")
-async def improve_content(
-    content_id: PydanticObjectId,
-    payload: ContentImproveRequest,
-    current_user: User = Depends(get_current_user),
-):
-    """Iteratively improves existing content by continuing the LangChain prompt chain.
-
-    Feeds conversational history from parent prompts into ChatGroq, refines post copy,
-    and updates/regenerates requested media formats (image, audio, video).
-    """
-    content, _ = await run_content_improvement_agent(
-        user_id=current_user.id,
-        content_id=content_id,
-        instruction=payload.instruction,
-        target_formats=payload.formats,
-        parent_prompt_id=payload.parent_prompt_id,
-    )
-    return content
-
-
-@router.get("/{content_id}/chain", response_model=List[PromptResponse], summary="Get Content Prompt Chain")
-async def get_content_prompt_chain(
-    content_id: PydanticObjectId,
-    current_user: User = Depends(get_current_user),
-):
-    """Retrieves all prompts executed in the chain for this content document in chronological order."""
-    content = await Content.get(content_id)
-    if not content or content.deleted_at is not None or content.user_id != current_user.id:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
-
-    return await Prompt.find(
-        Prompt.content_id == content_id,
-        Prompt.user_id == current_user.id,
-        Prompt.deleted_at == None,
-    ).sort("created_at").to_list()
-
-
-@router.post("", response_model=ContentResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=ContentResponse, status_code=status.HTTP_201_CREATED, summary="Create Manual Content")
 async def create_content(payload: ContentCreate, current_user: User = Depends(get_current_user)):
-    user_id = payload.user_id or current_user.id
+    """Manually creates a new content entry for the authenticated user."""
     details = [ContentDetail(**d.model_dump()) for d in payload.details]
 
     content = Content(
-        user_id=user_id,
+        user_id=current_user.id,
         title=payload.title,
         details=details,
         status=payload.status,
@@ -131,30 +52,45 @@ async def create_content(payload: ContentCreate, current_user: User = Depends(ge
     return content
 
 
-@router.get("", response_model=List[ContentResponse])
-async def list_contents(current_user: User = Depends(get_current_user)):
+@router.get("", response_model=List[ContentResponse], summary="List User Contents")
+async def list_contents(
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(50, ge=1, le=100, description="Maximum number of items to return"),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieves all non-deleted contents owned by the current user."""
     return await Content.find(
         Content.user_id == current_user.id,
         Content.deleted_at == None,  # noqa: E711
-    ).to_list()
+    ).skip(skip).limit(limit).to_list()
 
 
-@router.get("/{content_id}", response_model=ContentResponse)
+@router.get("/{content_id}", response_model=ContentResponse, summary="Get Content by ID")
 async def get_content(content_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    content = await Content.get(content_id)
-    if not content or content.deleted_at is not None:
+    """Retrieves a single content item owned by the authenticated user."""
+    content = await Content.find_one(
+        Content.id == content_id,
+        Content.user_id == current_user.id,
+        Content.deleted_at == None,  # noqa: E711
+    )
+    if not content:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
     return content
 
 
-@router.put("/{content_id}", response_model=ContentResponse)
+@router.put("/{content_id}", response_model=ContentResponse, summary="Update Content")
 async def update_content(
     content_id: PydanticObjectId,
     payload: ContentUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    content = await Content.get(content_id)
-    if not content or content.deleted_at is not None:
+    """Updates content title, status, or details for an owned content document."""
+    content = await Content.find_one(
+        Content.id == content_id,
+        Content.user_id == current_user.id,
+        Content.deleted_at == None,  # noqa: E711
+    )
+    if not content:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
 
     if payload.title is not None:
@@ -169,10 +105,15 @@ async def update_content(
     return content
 
 
-@router.delete("/{content_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{content_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete Content")
 async def delete_content(content_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    content = await Content.get(content_id)
-    if not content or content.deleted_at is not None:
+    """Soft-deletes content owned by the authenticated user."""
+    content = await Content.find_one(
+        Content.id == content_id,
+        Content.user_id == current_user.id,
+        Content.deleted_at == None,  # noqa: E711
+    )
+    if not content:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
 
     content.deleted_at = datetime.now(timezone.utc)

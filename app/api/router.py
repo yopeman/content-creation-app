@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from app.api.v1.contents import router as contents_router
+from app.api.v1.generations import router as generations_router
 from app.api.v1.health import router as health_router
 from app.api.v1.plans import router as plans_router
 from app.api.v1.platforms import router as platforms_router
@@ -13,6 +14,7 @@ api_router.include_router(health_router, tags=["Health"])
 api_router.include_router(users_router, prefix="/users", tags=["Users"])
 api_router.include_router(platforms_router, prefix="/platforms", tags=["Platforms"])
 api_router.include_router(contents_router, prefix="/contents", tags=["Contents"])
+api_router.include_router(generations_router, prefix="/generations", tags=["Generations"])
 api_router.include_router(prompts_router, prefix="/prompts", tags=["Prompts"])
 api_router.include_router(plans_router, prefix="/plans", tags=["Plans"])
 api_router.include_router(posts_router, prefix="/posts", tags=["Posts"])

@@ -247,6 +247,34 @@ async def test_local_file_upload_and_content_creation(auth_client: AsyncClient):
     assert content_data["title"] == "10 AI Tools Every Creator Needs in 2026"
     assert len(content_data["details"]) == 2
     assert "_id" in content_data
+    created_id = content_data["_id"]
+
+    # 3. Read back created content (GET /contents/{id})
+    get_resp = await auth_client.get(f"/api/v1/contents/{created_id}")
+    assert get_resp.status_code == 200
+    assert get_resp.json()["_id"] == created_id
+
+    # 4. Update content (PUT /contents/{id})
+    update_resp = await auth_client.put(
+        f"/api/v1/contents/{created_id}",
+        json={"title": "Updated: 10 AI Tools Every Creator Needs", "status": "ready"},
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["title"] == "Updated: 10 AI Tools Every Creator Needs"
+    assert update_resp.json()["status"] == "ready"
+
+    # 5. List contents (GET /contents)
+    list_resp = await auth_client.get("/api/v1/contents")
+    assert list_resp.status_code == 200
+    assert any(c["_id"] == created_id for c in list_resp.json())
+
+    # 6. Delete content (DELETE /contents/{id})
+    del_resp = await auth_client.delete(f"/api/v1/contents/{created_id}")
+    assert del_resp.status_code == 204
+
+    # 7. Deleted content should return 404
+    del_check_resp = await auth_client.get(f"/api/v1/contents/{created_id}")
+    assert del_check_resp.status_code == 404
 
 
 @pytest.mark.asyncio
@@ -321,13 +349,13 @@ async def test_plan_and_post_flow(auth_client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_ai_content_generation_agent(auth_client: AsyncClient):
-    # 1. Call AI content generation endpoint
+    # 1. Call AI content generation endpoint via /api/v1/generations
     gen_payload = {
         "prompt": "Top 5 Tips for Developer Productivity in 2026",
         "title": "Top 5 Developer Productivity Tips",
         "formats": ["text", "image", "audio", "video"],
     }
-    gen_resp = await auth_client.post("/api/v1/contents/generate", json=gen_payload)
+    gen_resp = await auth_client.post("/api/v1/generations", json=gen_payload)
     assert gen_resp.status_code == 201
     content_data = gen_resp.json()
     assert content_data["title"] == "Top 5 Developer Productivity Tips"
@@ -428,7 +456,7 @@ async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient)
         "title": "Top 3 Python Tips",
         "formats": ["text", "image", "audio", "video"],
     }
-    gen_resp = await auth_client.post("/api/v1/contents/generate", json=initial_payload)
+    gen_resp = await auth_client.post("/api/v1/generations", json=initial_payload)
     assert gen_resp.status_code == 201
     content_data = gen_resp.json()
     content_id = content_data["_id"]
@@ -445,19 +473,19 @@ async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient)
     assert root_prompt["status"] == "done"
     root_prompt_id = root_prompt["_id"]
 
-    # 2. First Iterative Improvement via POST /contents/{content_id}/improve
+    # 2. First Iterative Improvement via POST /generations/{content_id}/improve
     improve_payload_1 = {
         "instruction": "Make the text punchier, add 3 bullet points, and add hashtags. Update text, audio, and video.",
         "formats": ["text", "audio", "video"],
     }
-    improve_resp_1 = await auth_client.post(f"/api/v1/contents/{content_id}/improve", json=improve_payload_1)
+    improve_resp_1 = await auth_client.post(f"/api/v1/generations/{content_id}/improve", json=improve_payload_1)
     assert improve_resp_1.status_code == 200
     improved_content_1 = improve_resp_1.json()
     improved_text_1 = next(d["text"] for d in improved_content_1["details"] if d["type"] == "text")
     assert improved_text_1 is not None
 
     # Check that prompt chain now has 2 prompts and parent_prompt_id points to root prompt
-    chain_resp_1 = await auth_client.get(f"/api/v1/contents/{content_id}/chain")
+    chain_resp_1 = await auth_client.get(f"/api/v1/generations/{content_id}/chain")
     assert chain_resp_1.status_code == 200
     chain_1 = chain_resp_1.json()
     assert len(chain_1) == 2
@@ -468,20 +496,20 @@ async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient)
     assert chain_1[1]["status"] == "done"
     second_prompt_id = chain_1[1]["_id"]
 
-    # 3. Second Iterative Improvement via POST /contents/generate passing content_id
+    # 3. Second Iterative Improvement via POST /generations passing content_id
     improve_payload_2 = {
         "content_id": content_id,
         "prompt": "Add a short call-to-action at the end asking developers for their favorite tip.",
         "formats": ["text"],
     }
-    improve_resp_2 = await auth_client.post("/api/v1/contents/generate", json=improve_payload_2)
+    improve_resp_2 = await auth_client.post("/api/v1/generations", json=improve_payload_2)
     assert improve_resp_2.status_code == 200 or improve_resp_2.status_code == 201
     improved_content_2 = improve_resp_2.json()
     improved_text_2 = next(d["text"] for d in improved_content_2["details"] if d["type"] == "text")
     assert improved_text_2 is not None
 
-    # Verify full 3-step prompt chain via GET /contents/{content_id}/chain
-    chain_resp_2 = await auth_client.get(f"/api/v1/contents/{content_id}/chain")
+    # Verify full 3-step prompt chain via GET /generations/{content_id}/chain
+    chain_resp_2 = await auth_client.get(f"/api/v1/generations/{content_id}/chain")
     assert chain_resp_2.status_code == 200
     chain_2 = chain_resp_2.json()
     assert len(chain_2) == 3
