@@ -14,6 +14,7 @@ from app.schemas.platform import (
     PlatformCreate,
     PlatformResponse,
     PlatformUpdate,
+    SupportedPlatform,
 )
 from app.schemas.post import (
     PostCreate,
@@ -35,6 +36,7 @@ __all__ = [
     "TokenResponse",
     "UserUpdate",
     "UserResponse",
+    "SupportedPlatform",
     "PlatformCreate",
     "PlatformUpdate",
     "PlatformResponse",

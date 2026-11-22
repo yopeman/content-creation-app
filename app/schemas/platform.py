@@ -1,8 +1,16 @@
 from datetime import datetime
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
 from pydantic import BaseModel, ConfigDict, Field
 from app.models.enums import PlatformCode, PlatformStatus
+
+
+class SupportedPlatform(BaseModel):
+    code: PlatformCode
+    name: str
+    description: str
+    is_supported: bool = True
+    required_details: List[str] = Field(default_factory=list)
 
 
 class PlatformBase(BaseModel):
@@ -15,11 +23,12 @@ class PlatformBase(BaseModel):
 
 
 class PlatformCreate(PlatformBase):
-    user_id: Optional[PydanticObjectId] = None
+    pass
 
 
 class PlatformUpdate(BaseModel):
     account_name: Optional[str] = None
+    platform_account_id: Optional[str] = None
     details: Optional[Dict[str, Any]] = None
     status: Optional[PlatformStatus] = None
     expires_at: Optional[datetime] = None
@@ -33,5 +42,4 @@ class PlatformResponse(PlatformBase):
     created_at: datetime
     updated_at: datetime
 
-    model_config = ConfigDict(populate_by_name=True)
-
+    model_config = ConfigDict(populate_by_name=True, from_attributes=True)
