@@ -56,6 +56,7 @@ async def generate_content(
         user_id=current_user.id,
         prompt=payload.prompt,
         title=payload.title,
+        campaign_id=payload.campaign_id,
         plan_id=payload.plan_id,
         plan_item_id=payload.plan_item_id,
         target_formats=payload.formats,

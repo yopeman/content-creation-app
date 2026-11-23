@@ -1,3 +1,10 @@
+from app.schemas.campaign import (
+    CampaignBase,
+    CampaignCreate,
+    CampaignGenerateRequest,
+    CampaignResponse,
+    CampaignUpdate,
+)
 from app.schemas.content import (
     ContentCreate,
     ContentDetailSchema,
@@ -7,11 +14,16 @@ from app.schemas.content import (
     ContentUpdate,
 )
 from app.schemas.plan import (
+    LegacyPlanCreate,
+    LegacyPlanResponse,
+    PlanBase,
     PlanCreate,
     PlanGenerateRequest,
+    PlanItemBase,
     PlanItemCreate,
     PlanItemResponse,
     PlanResponse,
+    PlanUpdate,
 )
 from app.schemas.platform import (
     PlatformCreate,
@@ -61,9 +73,19 @@ __all__ = [
     "PostTargetCreate",
     "PostTargetResponse",
     "PostResponse",
+    "CampaignBase",
+    "CampaignCreate",
+    "CampaignUpdate",
+    "CampaignGenerateRequest",
+    "CampaignResponse",
+    "PlanBase",
     "PlanCreate",
-    "PlanGenerateRequest",
+    "PlanUpdate",
+    "PlanResponse",
+    "PlanItemBase",
     "PlanItemCreate",
     "PlanItemResponse",
-    "PlanResponse",
+    "LegacyPlanCreate",
+    "LegacyPlanResponse",
+    "PlanGenerateRequest",
 ]

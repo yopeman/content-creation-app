@@ -15,6 +15,7 @@ async def list_prompts(
     prompt_type: Optional[PromptType] = Query(None, alias="type"),
     prompt_status: Optional[PromptStatus] = Query(None, alias="status"),
     content_id: Optional[PydanticObjectId] = Query(None),
+    campaign_id: Optional[PydanticObjectId] = Query(None),
     plan_id: Optional[PydanticObjectId] = Query(None),
     plan_item_id: Optional[PydanticObjectId] = Query(None),
     current_user: User = Depends(get_current_user),
@@ -27,6 +28,8 @@ async def list_prompts(
         query.append(Prompt.status == prompt_status)
     if content_id:
         query.append(Prompt.content_id == content_id)
+    if campaign_id:
+        query.append(Prompt.campaign_id == campaign_id)
     if plan_id:
         query.append(Prompt.plan_id == plan_id)
     if plan_item_id:

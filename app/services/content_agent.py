@@ -3,8 +3,9 @@ from typing import List, Optional, Set, Tuple
 from beanie import PydanticObjectId
 from fastapi import HTTPException, status
 from app.core.config import settings
+from app.models.campaign import Campaign
 from app.models.content import Content, ContentDetail
-from app.models.enums import ContentStatus, ContentType, PlanItemStatus, PlanStatus, PromptStatus, PromptType
+from app.models.enums import CampaignStatus, ContentStatus, ContentType, PlanItemStatus, PlanStatus, PromptStatus, PromptType
 from app.models.plan import Plan
 from app.models.plan_item import PlanItem
 from app.models.prompt import Prompt
@@ -38,6 +39,7 @@ async def run_content_generation_agent(
     user_id: PydanticObjectId,
     prompt: str,
     title: Optional[str] = None,
+    campaign_id: Optional[PydanticObjectId] = None,
     plan_id: Optional[PydanticObjectId] = None,
     plan_item_id: Optional[PydanticObjectId] = None,
     target_formats: Optional[List[ContentType]] = None,
@@ -48,12 +50,14 @@ async def run_content_generation_agent(
     Saves sub-prompts in ContentDetail.script, local paths in ContentDetail.path,
     and text content in ContentDetail.text.
     """
-    prompt_type = PromptType.PLAN_ITEM if plan_item_id else PromptType.CONTENT
+    target_plan_id = plan_item_id or plan_id
+    prompt_type = PromptType.PLAN_ITEM if target_plan_id else PromptType.CONTENT
     prompt_record = Prompt(
         parent_prompt_id=parent_prompt_id,
         user_id=user_id,
+        campaign_id=campaign_id or plan_id,
         plan_id=plan_id,
-        plan_item_id=plan_item_id,
+        plan_item_id=plan_item_id or plan_id,
         type=prompt_type,
         prompt=prompt,
         model=settings.GROQ_MODEL,
@@ -188,12 +192,12 @@ async def run_content_generation_agent(
         )
         await content.insert()
 
-        # Link content to PlanItem if requested
-        if plan_item_id:
-            plan_item = await PlanItem.get(plan_item_id)
+        # Link content to Plan if requested
+        if target_plan_id:
+            plan_item = await Plan.get(target_plan_id)
             if plan_item and plan_item.user_id == user_id:
                 plan_item.content_id = content.id
-                plan_item.status = PlanItemStatus.READY
+                plan_item.status = PlanStatus.READY
                 plan_item.updated_at = datetime.now(timezone.utc)
                 await plan_item.save()
 
@@ -438,13 +442,88 @@ async def run_content_improvement_agent(
         raise exc
 
 
+async def run_campaign_generation_agent(
+    user_id: PydanticObjectId,
+    idea: str,
+    title: Optional[str] = None,
+    goal: Optional[str] = None,
+    context: Optional[str] = None,
+    number_of_content: int = 3,
+    color_has_code: Optional[str] = None,
+    permission: str = "review_required",
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> Tuple[Campaign, List[Plan], Prompt]:
+    """Generates an editorial campaign with plan breakdown, logging a Prompt with type=PromptType.CAMPAIGN."""
+    prompt_record = Prompt(
+        user_id=user_id,
+        type=PromptType.CAMPAIGN,
+        prompt=f"Campaign Idea: {idea}. Context: {context or 'None'}. Content Count: {number_of_content}",
+        model=settings.GROQ_MODEL,
+        status=PromptStatus.STREAMING,
+    )
+    await prompt_record.insert()
+
+    try:
+        campaign = Campaign(
+            user_id=user_id,
+            title=title or (idea[:60] if len(idea) > 60 else idea),
+            idea=idea,
+            goal=goal,
+            context=context,
+            number_of_content=number_of_content,
+            color_has_code=color_has_code,
+            permission=permission,
+            status=CampaignStatus.READY,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        await campaign.insert()
+
+        created_plans: List[Plan] = []
+        for i in range(1, number_of_content + 1):
+            item_idea = f"{idea} - Part {i}: Key Insights & Practical Application"
+            plan = Plan(
+                campaign_id=campaign.id,
+                plan_id=campaign.id,
+                user_id=user_id,
+                order=i,
+                idea=item_idea,
+                formats=[ContentType.TEXT, ContentType.IMAGE, ContentType.AUDIO, ContentType.VIDEO],
+                status=PlanStatus.PENDING,
+            )
+            await plan.insert()
+            created_plans.append(plan)
+
+        prompt_record.campaign_id = campaign.id
+        prompt_record.plan_id = campaign.id
+        prompt_record.status = PromptStatus.DONE
+        prompt_record.response = f"Generated campaign '{idea}' with {len(created_plans)} plans."
+        prompt_record.updated_at = datetime.now(timezone.utc)
+        await prompt_record.save()
+
+        return campaign, created_plans, prompt_record
+
+    except Exception as exc:
+        prompt_record.status = PromptStatus.FAILED
+        prompt_record.error = str(exc)
+        prompt_record.updated_at = datetime.now(timezone.utc)
+        await prompt_record.save()
+        raise exc
+
+
 async def run_plan_generation_agent(
     user_id: PydanticObjectId,
     idea: str,
     context: Optional[str] = None,
     number_of_content: int = 3,
     permission: str = "review_required",
-) -> Tuple[Plan, List[PlanItem], Prompt]:
+    title: Optional[str] = None,
+    goal: Optional[str] = None,
+    color_has_code: Optional[str] = None,
+    start_date: Optional[datetime] = None,
+    end_date: Optional[datetime] = None,
+) -> Tuple[Campaign, List[Plan], Prompt]:
     """Generates an editorial campaign plan with item breakdown, logging a Prompt with type=PromptType.PLAN."""
     prompt_record = Prompt(
         user_id=user_id,
@@ -456,37 +535,44 @@ async def run_plan_generation_agent(
     await prompt_record.insert()
 
     try:
-        plan = Plan(
+        campaign = Campaign(
             user_id=user_id,
+            title=title or (idea[:60] if len(idea) > 60 else idea),
             idea=idea,
+            goal=goal,
             context=context,
             number_of_content=number_of_content,
+            color_has_code=color_has_code,
             permission=permission,
-            status=PlanStatus.READY,
+            status=CampaignStatus.READY,
+            start_date=start_date,
+            end_date=end_date,
         )
-        await plan.insert()
+        await campaign.insert()
 
-        created_items: List[PlanItem] = []
+        created_items: List[Plan] = []
         for i in range(1, number_of_content + 1):
             item_idea = f"{idea} - Part {i}: Key Insights & Practical Application"
-            item = PlanItem(
-                plan_id=plan.id,
+            item = Plan(
+                campaign_id=campaign.id,
+                plan_id=campaign.id,
                 user_id=user_id,
                 order=i,
                 idea=item_idea,
                 formats=[ContentType.TEXT, ContentType.IMAGE, ContentType.AUDIO, ContentType.VIDEO],
-                status=PlanItemStatus.PENDING,
+                status=PlanStatus.PENDING,
             )
             await item.insert()
             created_items.append(item)
 
-        prompt_record.plan_id = plan.id
+        prompt_record.campaign_id = campaign.id
+        prompt_record.plan_id = campaign.id
         prompt_record.status = PromptStatus.DONE
         prompt_record.response = f"Generated campaign plan '{idea}' with {len(created_items)} items."
         prompt_record.updated_at = datetime.now(timezone.utc)
         await prompt_record.save()
 
-        return plan, created_items, prompt_record
+        return campaign, created_items, prompt_record
 
     except Exception as exc:
         prompt_record.status = PromptStatus.FAILED

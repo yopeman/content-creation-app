@@ -10,6 +10,7 @@ class PromptResponse(BaseModel):
     parent_prompt_id: Optional[PydanticObjectId] = None
     user_id: PydanticObjectId
     content_id: Optional[PydanticObjectId] = None
+    campaign_id: Optional[PydanticObjectId] = None
     plan_id: Optional[PydanticObjectId] = None
     plan_item_id: Optional[PydanticObjectId] = None
     type: PromptType

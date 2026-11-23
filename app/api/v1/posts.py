@@ -123,10 +123,11 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
     if not content:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Content not found")
 
-    # 2. Validate plan_item if provided
-    if payload.plan_item_id:
+    # 2. Validate plan or plan_item if provided
+    target_plan_id = payload.plan_item_id or payload.plan_id
+    if target_plan_id:
         plan_item = await PlanItem.find_one(
-            PlanItem.id == payload.plan_item_id,
+            PlanItem.id == target_plan_id,
             PlanItem.user_id == user_id,
             PlanItem.deleted_at == None,  # noqa: E711
         )
@@ -153,7 +154,9 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
     post = Post(
         user_id=user_id,
         content_id=payload.content_id,
-        plan_item_id=payload.plan_item_id,
+        campaign_id=payload.campaign_id,
+        plan_id=target_plan_id,
+        plan_item_id=target_plan_id,
         scheduled_at=payload.scheduled_at,
         status=initial_status,
     )

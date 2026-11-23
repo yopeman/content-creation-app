@@ -1,5 +1,8 @@
+from app.models.campaign import Campaign
 from app.models.content import Content, ContentDetail
 from app.models.enums import (
+    CampaignPermission,
+    CampaignStatus,
     ContentStatus,
     ContentType,
     PlanItemStatus,
@@ -27,8 +30,8 @@ __all_models__ = [
     Content,
     Post,
     PostTarget,
+    Campaign,
     Plan,
-    PlanItem,
 ]
 
 __all__ = [
@@ -39,6 +42,7 @@ __all__ = [
     "ContentDetail",
     "Post",
     "PostTarget",
+    "Campaign",
     "Plan",
     "PlanItem",
     "UserStatus",
@@ -50,6 +54,8 @@ __all__ = [
     "ContentStatus",
     "PostStatus",
     "PostTargetStatus",
+    "CampaignStatus",
+    "CampaignPermission",
     "PlanStatus",
     "PlanItemStatus",
     "__all_models__",

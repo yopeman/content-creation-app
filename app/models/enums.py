@@ -24,6 +24,7 @@ class PlatformStatus(str, Enum):
 
 class PromptType(str, Enum):
     CONTENT = "content"
+    CAMPAIGN = "campaign"
     PLAN = "plan"
     PLAN_ITEM = "plan_item"
 
@@ -67,7 +68,7 @@ class PostTargetStatus(str, Enum):
     SKIPPED = "skipped"
 
 
-class PlanStatus(str, Enum):
+class CampaignStatus(str, Enum):
     DRAFT = "draft"
     GENERATING = "generating"
     READY = "ready"
@@ -76,10 +77,22 @@ class PlanStatus(str, Enum):
     FAILED = "failed"
 
 
-class PlanItemStatus(str, Enum):
+class CampaignPermission(str, Enum):
+    REVIEW_REQUIRED = "review_required"
+    AUTO_PUBLISH = "auto_publish"
+
+
+class PlanStatus(str, Enum):
     PENDING = "pending"
     GENERATING = "generating"
     READY = "ready"
     SCHEDULED = "scheduled"
     PUBLISHED = "published"
     FAILED = "failed"
+    # Backwards-compatibility aliases for legacy PlanStatus
+    DRAFT = "draft"
+    DONE = "done"
+
+
+# Backwards compatibility alias
+PlanItemStatus = PlanStatus

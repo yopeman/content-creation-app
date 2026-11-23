@@ -97,23 +97,28 @@
 - created at
 - updated at
 
-### Plans
+### Campaign
 
 - _id
 - user id
+- title
 - idea
+- goal
 - context
 - number of content
+- color hash code
 - permission: review required, auto publish
 - status: draft, generating, ready, scheduled, done, failed
+- start date 
+- end date
 - deleted at
 - created at
 - updated at
 
-### Plan Items
+### Plan
 
 - _id
-- plan id
+- campaign id
 - user id
 - order
 - idea
