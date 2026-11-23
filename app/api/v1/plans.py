@@ -25,6 +25,7 @@ async def create_plan(payload: LegacyPlanCreate, current_user: User = Depends(ge
     """Manually creates a campaign with plans."""
     user_id = current_user.id
 
+    color = payload.color_hash_code or payload.color_has_code or payload.color_hex_code
     campaign = Campaign(
         user_id=user_id,
         title=payload.title,
@@ -32,7 +33,7 @@ async def create_plan(payload: LegacyPlanCreate, current_user: User = Depends(ge
         goal=payload.goal,
         context=payload.context,
         number_of_content=payload.number_of_content,
-        color_has_code=payload.color_has_code,
+        color_hash_code=color,
         permission=payload.permission,
         status=CampaignStatus.DRAFT,
         start_date=payload.start_date,

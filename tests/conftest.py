@@ -93,3 +93,49 @@ def mock_telegram_api():
         mock_info.side_effect = fake_get_chat_info
         mock_send.side_effect = fake_send_post
         yield mock_info
+
+
+@pytest.fixture(autouse=True)
+def mock_media_generators():
+    """Mocks media generation tools (Pillow, gTTS, MoviePy/ffmpeg) for ultra-fast, isolated test runs."""
+    with patch("app.services.content_agent.create_image_content") as mock_img, \
+         patch("app.services.content_agent.create_audio_content") as mock_aud, \
+         patch("app.services.content_agent.create_video_content") as mock_vid, \
+         patch("app.services.content_tools.create_image_content") as mock_tools_img, \
+         patch("app.services.content_tools.create_audio_content") as mock_tools_aud, \
+         patch("app.services.content_tools.create_video_content") as mock_tools_vid:
+
+        fake_image = {
+            "path": "uploads/image/mock_test_image.png",
+            "abs_path": str(settings.upload_path / "image" / "mock_test_image.png"),
+            "url": "/uploads/image/mock_test_image.png",
+            "mime_type": "image/png",
+            "file_size_bytes": 1024,
+            "dimensions": {"width": 1080, "height": 1080},
+        }
+        fake_audio = {
+            "path": "uploads/audio/mock_test_audio.mp3",
+            "abs_path": str(settings.upload_path / "audio" / "mock_test_audio.mp3"),
+            "url": "/uploads/audio/mock_test_audio.mp3",
+            "mime_type": "audio/mpeg",
+            "file_size_bytes": 2048,
+        }
+        fake_video = {
+            "path": "uploads/video/mock_test_video.mp4",
+            "abs_path": str(settings.upload_path / "video" / "mock_test_video.mp4"),
+            "url": "/uploads/video/mock_test_video.mp4",
+            "mime_type": "video/mp4",
+            "file_size_bytes": 4096,
+        }
+
+        mock_img.return_value = fake_image
+        mock_tools_img.return_value = fake_image
+
+        mock_aud.return_value = fake_audio
+        mock_tools_aud.return_value = fake_audio
+
+        mock_vid.return_value = fake_video
+        mock_tools_vid.return_value = fake_video
+
+        yield
+

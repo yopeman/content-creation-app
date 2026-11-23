@@ -12,7 +12,7 @@ class Campaign(Document):
     goal: Optional[str] = None
     context: Optional[str] = None
     number_of_content: int = 1
-    color_has_code: Optional[str] = None
+    color_hash_code: Optional[str] = None
     permission: str = "review_required"  # "review_required", "auto_publish"
     status: CampaignStatus = CampaignStatus.DRAFT
     start_date: Optional[datetime] = None
@@ -25,26 +25,40 @@ class Campaign(Document):
     @classmethod
     def sync_color_code(cls, data):
         if isinstance(data, dict):
-            color = data.get("color_has_code") or data.get("color_hex_code") or data.get("color_code")
+            color = (
+                data.get("color_hash_code")
+                or data.get("color_has_code")
+                or data.get("color_hex_code")
+                or data.get("color_code")
+            )
             if color:
+                data["color_hash_code"] = color
                 data["color_has_code"] = color
         return data
 
     @property
+    def color_has_code(self) -> Optional[str]:
+        return self.color_hash_code
+
+    @color_has_code.setter
+    def color_has_code(self, val: Optional[str]):
+        self.color_hash_code = val
+
+    @property
     def color_hex_code(self) -> Optional[str]:
-        return self.color_has_code
+        return self.color_hash_code
 
     @color_hex_code.setter
     def color_hex_code(self, val: Optional[str]):
-        self.color_has_code = val
+        self.color_hash_code = val
 
     @property
     def color_code(self) -> Optional[str]:
-        return self.color_has_code
+        return self.color_hash_code
 
     @color_code.setter
     def color_code(self, val: Optional[str]):
-        self.color_has_code = val
+        self.color_hash_code = val
 
     class Settings:
         name = "campaigns"

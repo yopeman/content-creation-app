@@ -1,3 +1,4 @@
+import asyncio
 from datetime import datetime, timezone
 from typing import List, Optional, Set, Tuple
 from beanie import PydanticObjectId
@@ -134,7 +135,7 @@ async def run_content_generation_agent(
 
         # Modality 2: IMAGE
         if ContentType.IMAGE in formats_to_create:
-            img_meta = create_image_content(prompt=image_script)
+            img_meta = await asyncio.to_thread(create_image_content, prompt=image_script)
             details.append(
                 ContentDetail(
                     type=ContentType.IMAGE,
@@ -151,7 +152,7 @@ async def run_content_generation_agent(
         # Modality 3: AUDIO
         if ContentType.AUDIO in formats_to_create:
             audio_text = f"Welcome. Today we discuss {prompt}. Thank you for listening."
-            audio_meta = create_audio_content(text_to_speak=audio_text)
+            audio_meta = await asyncio.to_thread(create_audio_content, text_to_speak=audio_text)
             details.append(
                 ContentDetail(
                     type=ContentType.AUDIO,
@@ -166,7 +167,8 @@ async def run_content_generation_agent(
 
         # Modality 4: VIDEO (All-in-one combining image and TTS audio via moviepy/ffmpeg)
         if ContentType.VIDEO in formats_to_create:
-            vid_meta = create_video_content(
+            vid_meta = await asyncio.to_thread(
+                create_video_content,
                 prompt=video_script,
                 visual_text=content_title,
                 voiceover_text=f"Quick summary on {prompt}. Learn more in our latest update.",
@@ -350,7 +352,7 @@ async def run_content_improvement_agent(
         # Modality 2: IMAGE
         if ContentType.IMAGE in formats_to_update:
             img_script = f"Refined graphic banner: {instruction}"
-            img_meta = create_image_content(prompt=img_script)
+            img_meta = await asyncio.to_thread(create_image_content, prompt=img_script)
             if ContentType.IMAGE in existing_details_map:
                 existing_details_map[ContentType.IMAGE].script = img_script
                 existing_details_map[ContentType.IMAGE].path = img_meta["path"]
@@ -374,8 +376,9 @@ async def run_content_improvement_agent(
         # Modality 3: AUDIO
         if ContentType.AUDIO in formats_to_update:
             audio_script = f"Refined voiceover: {instruction}"
-            audio_meta = create_audio_content(
-                text_to_speak=improved_text[:400] if improved_text else f"Updated overview on {instruction}"
+            audio_meta = await asyncio.to_thread(
+                create_audio_content,
+                text_to_speak=improved_text[:400] if improved_text else f"Updated overview on {instruction}",
             )
             if ContentType.AUDIO in existing_details_map:
                 existing_details_map[ContentType.AUDIO].script = audio_script
@@ -398,7 +401,8 @@ async def run_content_improvement_agent(
         # Modality 4: VIDEO
         if ContentType.VIDEO in formats_to_update:
             vid_script = f"Refined video reel: {instruction}"
-            vid_meta = create_video_content(
+            vid_meta = await asyncio.to_thread(
+                create_video_content,
                 prompt=vid_script,
                 visual_text=content.title,
                 voiceover_text=improved_text[:200] if improved_text else f"Quick update on {instruction}",
@@ -449,12 +453,14 @@ async def run_campaign_generation_agent(
     goal: Optional[str] = None,
     context: Optional[str] = None,
     number_of_content: int = 3,
+    color_hash_code: Optional[str] = None,
     color_has_code: Optional[str] = None,
     permission: str = "review_required",
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> Tuple[Campaign, List[Plan], Prompt]:
     """Generates an editorial campaign with plan breakdown, logging a Prompt with type=PromptType.CAMPAIGN."""
+    resolved_color = color_hash_code or color_has_code
     prompt_record = Prompt(
         user_id=user_id,
         type=PromptType.CAMPAIGN,
@@ -472,7 +478,7 @@ async def run_campaign_generation_agent(
             goal=goal,
             context=context,
             number_of_content=number_of_content,
-            color_has_code=color_has_code,
+            color_hash_code=resolved_color,
             permission=permission,
             status=CampaignStatus.READY,
             start_date=start_date,
@@ -520,11 +526,13 @@ async def run_plan_generation_agent(
     permission: str = "review_required",
     title: Optional[str] = None,
     goal: Optional[str] = None,
+    color_hash_code: Optional[str] = None,
     color_has_code: Optional[str] = None,
     start_date: Optional[datetime] = None,
     end_date: Optional[datetime] = None,
 ) -> Tuple[Campaign, List[Plan], Prompt]:
     """Generates an editorial campaign plan with item breakdown, logging a Prompt with type=PromptType.PLAN."""
+    resolved_color = color_hash_code or color_has_code
     prompt_record = Prompt(
         user_id=user_id,
         type=PromptType.PLAN,
@@ -542,7 +550,7 @@ async def run_plan_generation_agent(
             goal=goal,
             context=context,
             number_of_content=number_of_content,
-            color_has_code=color_has_code,
+            color_hash_code=resolved_color,
             permission=permission,
             status=CampaignStatus.READY,
             start_date=start_date,

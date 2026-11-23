@@ -27,6 +27,7 @@ async def create_campaign(
     """Manually creates a new campaign along with its plans for the authenticated user."""
     user_id = current_user.id
 
+    color = payload.color_hash_code or payload.color_has_code or payload.color_hex_code
     campaign = Campaign(
         user_id=user_id,
         title=payload.title,
@@ -34,7 +35,7 @@ async def create_campaign(
         goal=payload.goal,
         context=payload.context,
         number_of_content=payload.number_of_content,
-        color_has_code=payload.color_has_code,
+        color_hash_code=color,
         permission=payload.permission,
         status=payload.status or CampaignStatus.DRAFT,
         start_date=payload.start_date,
@@ -127,8 +128,9 @@ async def update_campaign(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Campaign not found")
 
     update_data = payload.model_dump(exclude_unset=True)
-    if "color_hex_code" in update_data and "color_has_code" not in update_data:
-        update_data["color_has_code"] = update_data.pop("color_hex_code")
+    color = update_data.pop("color_hex_code", None) or update_data.pop("color_has_code", None)
+    if color and "color_hash_code" not in update_data:
+        update_data["color_hash_code"] = color
 
     for field, val in update_data.items():
         setattr(campaign, field, val)

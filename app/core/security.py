@@ -28,8 +28,9 @@ def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] =
 
 
 def _get_fernet() -> Fernet:
-    """Derives a Fernet key deterministically from the application SECRET_KEY."""
-    derived_key = base64.urlsafe_b64encode(hashlib.sha256(settings.SECRET_KEY.encode("utf-8")).digest())
+    """Derives a Fernet key deterministically from ENCRYPTION_KEY (fallback to SECRET_KEY for backwards-compatibility)."""
+    key_source = settings.ENCRYPTION_KEY or settings.SECRET_KEY
+    derived_key = base64.urlsafe_b64encode(hashlib.sha256(key_source.encode("utf-8")).digest())
     return Fernet(derived_key)
 
 

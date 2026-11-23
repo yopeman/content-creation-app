@@ -77,6 +77,7 @@ class LegacyPlanCreate(BaseModel):
     goal: Optional[str] = None
     context: Optional[str] = None
     number_of_content: int = 1
+    color_hash_code: Optional[str] = None
     color_has_code: Optional[str] = None
     color_hex_code: Optional[str] = None
     permission: str = "review_required"
@@ -92,8 +93,14 @@ class LegacyPlanCreate(BaseModel):
             items = data.get("items") or data.get("plans") or []
             data["items"] = items
             data["plans"] = items
-            color = data.get("color_has_code") or data.get("color_hex_code") or data.get("color_code")
+            color = (
+                data.get("color_hash_code")
+                or data.get("color_has_code")
+                or data.get("color_hex_code")
+                or data.get("color_code")
+            )
             if color:
+                data["color_hash_code"] = color
                 data["color_has_code"] = color
                 data["color_hex_code"] = color
         return data
@@ -105,8 +112,9 @@ class PlanGenerateRequest(BaseModel):
     goal: Optional[str] = Field(None, description="Campaign goal")
     context: Optional[str] = Field(None, description="Campaign context, target audience, or channel focus")
     number_of_content: int = Field(3, description="Number of content items to schedule in this plan", ge=1, le=20)
-    color_has_code: Optional[str] = Field(None, description="Color code / hex code")
-    color_hex_code: Optional[str] = Field(None, description="Alias for color_has_code")
+    color_hash_code: Optional[str] = Field(None, description="Color code / hex code")
+    color_has_code: Optional[str] = Field(None, description="Alias for color_hash_code")
+    color_hex_code: Optional[str] = Field(None, description="Alias for color_hash_code")
     permission: str = "review_required"
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
@@ -115,8 +123,14 @@ class PlanGenerateRequest(BaseModel):
     @classmethod
     def sync_color(cls, data: Any) -> Any:
         if isinstance(data, dict):
-            color = data.get("color_has_code") or data.get("color_hex_code") or data.get("color_code")
+            color = (
+                data.get("color_hash_code")
+                or data.get("color_has_code")
+                or data.get("color_hex_code")
+                or data.get("color_code")
+            )
             if color:
+                data["color_hash_code"] = color
                 data["color_has_code"] = color
                 data["color_hex_code"] = color
         return data
@@ -130,6 +144,7 @@ class LegacyPlanResponse(BaseModel):
     goal: Optional[str] = None
     context: Optional[str] = None
     number_of_content: int
+    color_hash_code: Optional[str] = None
     color_has_code: Optional[str] = None
     color_hex_code: Optional[str] = None
     permission: str
@@ -148,8 +163,14 @@ class LegacyPlanResponse(BaseModel):
             items = data.get("items") or data.get("plans") or []
             data["items"] = items
             data["plans"] = items
-            color = data.get("color_has_code") or data.get("color_hex_code") or data.get("color_code")
+            color = (
+                data.get("color_hash_code")
+                or data.get("color_has_code")
+                or data.get("color_hex_code")
+                or data.get("color_code")
+            )
             if color:
+                data["color_hash_code"] = color
                 data["color_has_code"] = color
                 data["color_hex_code"] = color
         return data

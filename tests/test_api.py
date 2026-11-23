@@ -593,3 +593,45 @@ async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient)
     assert [p["_id"] for p in lineage] == [root_prompt_id, second_prompt_id, third_prompt_id]
 
 
+@pytest.mark.asyncio
+async def test_media_upload_magic_bytes_and_size_limits(auth_client: AsyncClient):
+    # 1. Spoofed file: text file pretending to be image/png
+    spoofed_file = {"file": ("fake_image.png", io.BytesIO(b"this is plain text not a png"), "image/png")}
+    spoofed_resp = await auth_client.post("/api/v1/contents/upload-media", files=spoofed_file)
+    assert spoofed_resp.status_code == 400
+    assert "binary signature" in spoofed_resp.json()["detail"].lower() or "magic bytes" in spoofed_resp.json()["detail"].lower()
+
+    # 2. Valid magic bytes for JPEG
+    valid_jpeg = b"\xff\xd8\xff\xe0" + b"\x00" * 20
+    jpeg_file = {"file": ("banner.jpg", io.BytesIO(valid_jpeg), "image/jpeg")}
+    jpeg_resp = await auth_client.post("/api/v1/contents/upload-media", files=jpeg_file)
+    assert jpeg_resp.status_code == 200
+    assert jpeg_resp.json()["detail"]["type"] == "image"
+
+    # 3. Valid magic bytes for MP3
+    valid_mp3 = b"ID3" + b"\x00" * 30
+    audio_file = {"file": ("podcast.mp3", io.BytesIO(valid_mp3), "audio/mpeg")}
+    audio_resp = await auth_client.post("/api/v1/contents/upload-media", files=audio_file)
+    assert audio_resp.status_code == 200
+    assert audio_resp.json()["detail"]["type"] == "audio"
+
+
+@pytest.mark.asyncio
+async def test_campaign_color_hash_code_direct(auth_client: AsyncClient):
+    # Direct test using color_hash_code
+    camp_resp = await auth_client.post(
+        "/api/v1/campaigns",
+        json={
+            "title": "Brand Redesign 2026",
+            "idea": "Modern typography and palette refresh",
+            "color_hash_code": "#EC4899",
+        },
+    )
+    assert camp_resp.status_code == 201
+    data = camp_resp.json()
+    assert data["color_hash_code"] == "#EC4899"
+    assert data["color_has_code"] == "#EC4899"
+    assert data["color_hex_code"] == "#EC4899"
+
+
+

@@ -25,6 +25,7 @@ class Settings(BaseSettings):
 
     # Security
     SECRET_KEY: str = "supersecretkeyforlocaldevelopmentonly"
+    ENCRYPTION_KEY: Optional[str] = None
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     ALGORITHM: str = "HS256"
 

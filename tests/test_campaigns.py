@@ -35,6 +35,7 @@ async def test_campaign_crud_flow(auth_client: AsyncClient):
     assert campaign["title"] == "Winter Growth Sprint"
     assert campaign["idea"] == "Scale multi-channel B2B engagement"
     assert campaign["goal"] == "Increase trial signups by 40%"
+    assert campaign["color_hash_code"] == "#6366F1"
     assert campaign["color_has_code"] == "#6366F1"
     assert campaign["color_hex_code"] == "#6366F1"
     assert campaign["status"] == "draft"
