@@ -1,10 +1,10 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import List
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import get_current_user
 from app.models.campaign import Campaign
-from app.models.enums import CampaignStatus, PlanStatus
+from app.models.enums import CampaignStatus
 from app.models.plan import Plan
 from app.models.user import User
 from app.schemas.campaign import (
@@ -15,48 +15,16 @@ from app.schemas.campaign import (
 )
 from app.schemas.content import ContentResponse
 from app.schemas.plan import PlanCreate, PlanResponse
-from app.services.content_agent import (
-    run_campaign_generation_agent,
-    run_content_generation_agent,
-)
 
 router = APIRouter()
 
 
-@router.post(
-    "/generate",
-    response_model=CampaignResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="AI Generate Campaign with Plans",
-)
-async def generate_campaign(
-    payload: CampaignGenerateRequest,
-    current_user: User = Depends(get_current_user),
-):
-    """Generates an editorial campaign with plan breakdown, logging a Prompt with type=PromptType.CAMPAIGN."""
-    campaign, plans, _ = await run_campaign_generation_agent(
-        user_id=current_user.id,
-        idea=payload.idea,
-        title=payload.title,
-        goal=payload.goal,
-        context=payload.context,
-        number_of_content=payload.number_of_content,
-        color_has_code=payload.color_has_code,
-        permission=payload.permission,
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-    )
-    response_data = campaign.model_dump(by_alias=True)
-    response_data["plans"] = [p.model_dump(by_alias=True) for p in plans]
-    response_data["items"] = response_data["plans"]
-    return CampaignResponse(**response_data)
-
-
-@router.post("", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=CampaignResponse, status_code=status.HTTP_201_CREATED, summary="Create Manual Campaign")
 async def create_campaign(
     payload: CampaignCreate,
     current_user: User = Depends(get_current_user),
 ):
+    """Manually creates a new campaign along with its plans for the authenticated user."""
     user_id = current_user.id
 
     campaign = Campaign(
@@ -97,8 +65,9 @@ async def create_campaign(
     return CampaignResponse(**response_data)
 
 
-@router.get("", response_model=List[CampaignResponse])
+@router.get("", response_model=List[CampaignResponse], summary="List User Campaigns")
 async def list_campaigns(current_user: User = Depends(get_current_user)):
+    """Retrieves all non-deleted campaigns owned by the current user."""
     campaigns = await Campaign.find(
         Campaign.user_id == current_user.id,
         Campaign.deleted_at == None,  # noqa: E711
@@ -117,11 +86,12 @@ async def list_campaigns(current_user: User = Depends(get_current_user)):
     return result
 
 
-@router.get("/{campaign_id}", response_model=CampaignResponse)
+@router.get("/{campaign_id}", response_model=CampaignResponse, summary="Get Campaign by ID")
 async def get_campaign(
     campaign_id: PydanticObjectId,
     current_user: User = Depends(get_current_user),
 ):
+    """Retrieves a single campaign with its plans."""
     campaign = await Campaign.find_one(
         Campaign.id == campaign_id,
         Campaign.user_id == current_user.id,
@@ -141,12 +111,13 @@ async def get_campaign(
     return CampaignResponse(**camp_dict)
 
 
-@router.patch("/{campaign_id}", response_model=CampaignResponse)
+@router.patch("/{campaign_id}", response_model=CampaignResponse, summary="Update Campaign")
 async def update_campaign(
     campaign_id: PydanticObjectId,
     payload: CampaignUpdate,
     current_user: User = Depends(get_current_user),
 ):
+    """Manually updates campaign metadata, goals, colors, or status."""
     campaign = await Campaign.find_one(
         Campaign.id == campaign_id,
         Campaign.user_id == current_user.id,
@@ -176,11 +147,12 @@ async def update_campaign(
     return CampaignResponse(**camp_dict)
 
 
-@router.delete("/{campaign_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/{campaign_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete Campaign")
 async def delete_campaign(
     campaign_id: PydanticObjectId,
     current_user: User = Depends(get_current_user),
 ):
+    """Soft deletes a campaign and its associated plans."""
     campaign = await Campaign.find_one(
         Campaign.id == campaign_id,
         Campaign.user_id == current_user.id,
@@ -193,7 +165,6 @@ async def delete_campaign(
     campaign.deleted_at = now
     await campaign.save()
 
-    # Soft delete related plans
     plans = await Plan.find(
         Plan.campaign_id == campaign.id,
         Plan.deleted_at == None,  # noqa: E711
@@ -207,13 +178,14 @@ async def delete_campaign(
     "/{campaign_id}/plans",
     response_model=PlanResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Add a Plan to Campaign",
+    summary="Add a Plan Manually to Campaign",
 )
 async def create_campaign_plan(
     campaign_id: PydanticObjectId,
     payload: PlanCreate,
     current_user: User = Depends(get_current_user),
 ):
+    """Manually adds a plan to a campaign."""
     campaign = await Campaign.find_one(
         Campaign.id == campaign_id,
         Campaign.user_id == current_user.id,
@@ -246,6 +218,7 @@ async def list_campaign_plans(
     campaign_id: PydanticObjectId,
     current_user: User = Depends(get_current_user),
 ):
+    """Lists plans belonging to a specific campaign."""
     campaign = await Campaign.find_one(
         Campaign.id == campaign_id,
         Campaign.user_id == current_user.id,
@@ -260,33 +233,40 @@ async def list_campaign_plans(
     ).to_list()
 
 
+# -------------------------------------------------------------------------
+# Delegated AI Generation Routes (forward to generations for backward compatibility)
+# -------------------------------------------------------------------------
+
+@router.post(
+    "/generate",
+    response_model=CampaignResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="AI Generate Campaign (Deprecated: use /api/v1/generations/campaign)",
+    include_in_schema=False,
+)
+async def generate_campaign_legacy(
+    payload: CampaignGenerateRequest,
+    current_user: User = Depends(get_current_user),
+):
+    from app.api.v1.generations import generate_campaign
+    return await generate_campaign(payload=payload, current_user=current_user)
+
+
 @router.post(
     "/{campaign_id}/plans/{plan_id}/generate-content",
     response_model=ContentResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Generate Content for a Plan under Campaign",
+    summary="Generate Content for Plan (Deprecated: use /api/v1/generations/plans/{plan_id}/content)",
+    include_in_schema=False,
 )
-async def generate_campaign_plan_content(
+async def generate_campaign_plan_content_legacy(
     campaign_id: PydanticObjectId,
     plan_id: PydanticObjectId,
     current_user: User = Depends(get_current_user),
 ):
-    plan = await Plan.find_one(
-        Plan.id == plan_id,
-        Plan.campaign_id == campaign_id,
-        Plan.user_id == current_user.id,
-        Plan.deleted_at == None,  # noqa: E711
-    )
-    if not plan:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
-
-    content, _ = await run_content_generation_agent(
-        user_id=current_user.id,
-        prompt=plan.idea,
-        title=plan.idea[:60],
+    from app.api.v1.generations import generate_plan_content
+    return await generate_plan_content(
+        plan_id=plan_id,
         campaign_id=campaign_id,
-        plan_id=plan.id,
-        plan_item_id=plan.id,
-        target_formats=plan.formats or None,
+        current_user=current_user,
     )
-    return content

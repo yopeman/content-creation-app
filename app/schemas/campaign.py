@@ -69,6 +69,7 @@ class CampaignGenerateRequest(BaseModel):
     permission: str = "review_required"
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
+    generate_contents: bool = Field(False, description="Whether to run the AI generation loop for all plans")
 
     @model_validator(mode="before")
     @classmethod
