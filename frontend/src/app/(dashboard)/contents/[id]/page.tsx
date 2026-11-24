@@ -2,7 +2,7 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
@@ -27,8 +27,7 @@ import {
   Wand2,
   Send,
   CheckCircle2,
-  Clock,
-  Archive,
+  Link2,
 } from "lucide-react";
 import { formatBytes, formatDate } from "@/lib/utils";
 
@@ -36,28 +35,12 @@ interface EditableBlock extends ContentDetail {
   id: string;
   isUploading?: boolean;
   uploadError?: string | null;
+  sourceType?: "upload" | "url";
 }
 
 export default function ContentAdjusterPage() {
   const params = useParams();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const contentId = params.id as string;
-
-  const [title, setTitle] = useState("");
-  const [status, setStatus] = useState<ContentStatus>("draft");
-  const [blocks, setBlocks] = useState<EditableBlock[]>([]);
-  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
-  const [saveSuccess, setSaveSuccess] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  // Dispatch modal state
-  const [showDispatchModal, setShowDispatchModal] = useState(false);
-  const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
-  const [isScheduledMode, setIsScheduledMode] = useState<boolean>(false);
-  const [scheduledDateTime, setScheduledDateTime] = useState<string>("");
-  const [dispatchError, setDispatchError] = useState<string | null>(null);
-  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
 
   // 1. Fetch content
   const { data: content, isLoading: loadingContent } = useQuery<Content>({
@@ -78,18 +61,56 @@ export default function ContentAdjusterPage() {
     },
   });
 
-  // Populate state on content load
-  useEffect(() => {
-    if (content) {
-      setTitle(content.title || "");
-      setStatus(content.status || "draft");
-      const mapped = (content.details || []).map((d, index) => ({
+  if (loadingContent || !content) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-neutral-500">
+        <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <span className="text-xs">Loading content details...</span>
+      </div>
+    );
+  }
+
+  return <ContentAdjusterForm key={content._id} content={content} platforms={platforms} />;
+}
+
+function ContentAdjusterForm({
+  content,
+  platforms,
+}: {
+  content: Content;
+  platforms: Platform[];
+}) {
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const contentId = content._id;
+
+  const [title, setTitle] = useState(content.title || "");
+  const [status, setStatus] = useState<ContentStatus>(content.status || "draft");
+  const [blocks, setBlocks] = useState<EditableBlock[]>(() =>
+    (content.details || []).map((d, index) => {
+      const isUrl = Boolean(
+        d.path &&
+          (d.path.startsWith("http://") || d.path.startsWith("https://")) &&
+          !d.path.includes("/uploads/")
+      );
+      return {
         ...d,
         id: `block-${index}-${Date.now()}`,
-      }));
-      setBlocks(mapped);
-    }
-  }, [content]);
+        sourceType: isUrl ? ("url" as const) : ("upload" as const),
+      };
+    })
+  );
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Dispatch modal state
+  const [showDispatchModal, setShowDispatchModal] = useState(false);
+  const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
+  const [isScheduledMode, setIsScheduledMode] = useState<boolean>(false);
+  const [scheduledDateTime, setScheduledDateTime] = useState<string>("");
+  const [dispatchError, setDispatchError] = useState<string | null>(null);
+  const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
 
   // Block management functions
   const addBlock = (type: ContentType) => {
@@ -97,8 +118,8 @@ export default function ContentAdjusterPage() {
       id: `block-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type,
       text: "",
-      script: "",
       order: blocks.length + 1,
+      sourceType: "upload",
     };
     setBlocks([...blocks, newBlock]);
   };
@@ -156,19 +177,63 @@ export default function ContentAdjusterPage() {
       const res = await apiClient.post("/contents/upload-media", formData);
 
       const detail = res.data.detail;
+      const fileName = detail.original_filename || file.name;
       updateBlock(blockId, {
         isUploading: false,
         path: detail.url || detail.path,
+        text: fileName,
+        script: fileName,
         mime_type: detail.mime_type,
         file_size_bytes: detail.file_size_bytes,
         uploadError: null,
       });
-    } catch (err: any) {
+
+      // Automatically prefill title if not set
+      setTitle((prev) => (prev.trim() ? prev : fileName.replace(/\.[^/.]+$/, "")));
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
       updateBlock(blockId, {
         isUploading: false,
         uploadError:
-          err.response?.data?.detail || "Media upload failed. Check format and size.",
+          errorObj.response?.data?.detail || "Media upload failed. Check format and size.",
       });
+    }
+  };
+
+  // Handle direct URL input for media blocks
+  const handleUrlInput = (blockId: string, url: string) => {
+    const trimmed = url.trim();
+    let cleanFileName = "";
+    if (trimmed) {
+      try {
+        const u = new URL(trimmed);
+        const segments = u.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          cleanFileName = decodeURIComponent(segments[segments.length - 1]);
+        }
+      } catch {
+        const segments = trimmed.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          cleanFileName = decodeURIComponent(segments[segments.length - 1]);
+        }
+      }
+      if (cleanFileName.includes("?")) {
+        cleanFileName = cleanFileName.split("?")[0];
+      }
+    }
+
+    updateBlock(blockId, {
+      path: trimmed,
+      text: cleanFileName,
+      script: cleanFileName,
+      uploadError: null,
+    });
+
+    if (cleanFileName) {
+      const derivedTitle = cleanFileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").trim();
+      if (derivedTitle) {
+        setTitle((prev) => (prev.trim() ? prev : derivedTitle.charAt(0).toUpperCase() + derivedTitle.slice(1)));
+      }
     }
   };
 
@@ -178,15 +243,18 @@ export default function ContentAdjusterPage() {
       setSaveError(null);
       setSaveSuccess(false);
 
-      const details = blocks.map((b, idx) => ({
-        type: b.type,
-        script: b.script || undefined,
-        path: b.path || undefined,
-        text: b.text || undefined,
-        order: idx + 1,
-        mime_type: b.mime_type || undefined,
-        file_size_bytes: b.file_size_bytes || undefined,
-      }));
+      const details = blocks.map((b, idx) => {
+        const fileNameFallback = b.path ? b.path.split("/").pop()?.split("?")[0] : undefined;
+        return {
+          type: b.type,
+          path: b.path || undefined,
+          text: b.type === "text" ? (b.text || undefined) : (b.text || fileNameFallback),
+          script: b.type === "text" ? undefined : (b.script || b.text || fileNameFallback),
+          order: idx + 1,
+          mime_type: b.mime_type || undefined,
+          file_size_bytes: b.file_size_bytes || undefined,
+        };
+      });
 
       const res = await apiClient.put(`/contents/${contentId}`, {
         title,
@@ -201,8 +269,9 @@ export default function ContentAdjusterPage() {
       queryClient.invalidateQueries({ queryKey: ["contents"] });
       setTimeout(() => setSaveSuccess(false), 2500);
     },
-    onError: (err: any) => {
-      setSaveError(err.response?.data?.detail || "Failed to save adjustments.");
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
+      setSaveError(errorObj.response?.data?.detail || "Failed to save adjustments.");
     },
   });
 
@@ -256,19 +325,11 @@ export default function ContentAdjusterPage() {
         setDispatchSuccess(null);
       }, 2000);
     },
-    onError: (err: any) => {
-      setDispatchError(err.response?.data?.detail || "Dispatch failed. Check platform credentials.");
+    onError: (err: unknown) => {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
+      setDispatchError(errorObj.response?.data?.detail || "Dispatch failed. Check platform credentials.");
     },
   });
-
-  if (loadingContent || !content) {
-    return (
-      <div className="h-64 flex flex-col items-center justify-center text-neutral-500">
-        <Loader2 className="h-6 w-6 animate-spin mb-2" />
-        <span className="text-xs">Loading content details...</span>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto">
@@ -548,19 +609,7 @@ export default function ContentAdjusterPage() {
                           value={block.text || ""}
                           onChange={(e) => updateBlock(block.id, { text: e.target.value })}
                           placeholder="Adjust caption, headlines, hashtags..."
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/70 border border-neutral-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Script Notes / Instructions (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="e.g. Tone, marketing angle"
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/50 border border-neutral-700/60 text-xs text-neutral-300 focus:outline-none"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/70 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                       </div>
                     </div>
@@ -568,128 +617,217 @@ export default function ContentAdjusterPage() {
 
                   {block.type === "image" && (
                     <div className="space-y-4">
-                      {/* Image Preview & Replacement */}
-                      <div className="flex flex-col sm:flex-row items-start gap-4">
-                        {block.path ? (
-                          <div className="w-full sm:w-64 h-40 relative rounded-xl overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
-                            <img
-                              src={getMediaUrl(block.path)}
-                              alt="Current Image"
-                              className="w-full h-full object-cover"
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Image Source
+                        </label>
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
+                            </div>
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/images/sample.jpg"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
                             />
                           </div>
-                        ) : (
-                          <div className="w-full sm:w-64 h-40 rounded-xl border border-dashed border-neutral-700 bg-neutral-950/60 flex items-center justify-center text-xs text-neutral-500 shrink-0">
-                            No image uploaded
-                          </div>
-                        )}
 
-                        <div className="flex-1 w-full space-y-2">
-                          <label className="block text-xs font-medium text-neutral-300">
-                            Replace or Upload New Image (Max 20MB)
-                          </label>
-                          <label
-                            onDragOver={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                            }}
-                            onDrop={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              const f = e.dataTransfer.files?.[0];
-                              if (f && !block.isUploading) handleUpload(block.id, f, "image");
-                            }}
-                            className="flex items-center justify-center gap-2 p-4 border border-dashed border-neutral-700 hover:border-pink-500/50 rounded-xl bg-neutral-800/40 hover:bg-pink-500/5 cursor-pointer transition"
-                          >
-                            {block.isUploading ? (
-                              <div className="flex items-center gap-2 text-xs text-pink-400">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Verifying & Uploading...</span>
+                          {block.path && (
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
+                              <div className="w-full sm:w-48 h-32 relative rounded-lg overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                                <img
+                                  src={getMediaUrl(block.path)}
+                                  alt="Image URL preview"
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
-                            ) : (
-                              <div className="flex items-center gap-2 text-xs text-neutral-300">
-                                <UploadCloud className="h-4 w-4 text-pink-400" />
-                                <span>Upload Replacement Image</span>
+                              <div className="text-[11px] text-neutral-400 space-y-1">
+                                <p className="text-pink-400 font-medium flex items-center gap-1.5">
+                                  <Link2 className="h-3.5 w-3.5" /> Direct URL Linked
+                                </p>
+                                <p className="text-white font-medium break-all">{block.text || block.path}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex flex-col sm:flex-row items-center gap-4">
+                            <label
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const f = e.dataTransfer.files?.[0];
+                                if (f && !block.isUploading) handleUpload(block.id, f, "image");
+                              }}
+                              className="flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-pink-500/50 rounded-2xl bg-neutral-850/50 hover:bg-pink-500/5 cursor-pointer transition"
+                            >
+                              {block.isUploading ? (
+                                <div className="flex items-center gap-2 text-xs text-pink-400">
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                  <span>Uploading image & verifying magic bytes...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center text-center">
+                                  <UploadCloud className="h-6 w-6 text-pink-400 mb-1.5" />
+                                  <span className="text-xs font-medium text-neutral-200">
+                                    Click to upload image or drag & drop
+                                  </span>
+                                  <span className="text-[10px] text-neutral-400 mt-0.5">
+                                    PNG, JPG, WEBP, GIF (Max 20MB) • Auto-checks binary signature
+                                  </span>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={block.isUploading}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleUpload(block.id, f, "image");
+                                  e.target.value = "";
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {/* Image Preview if uploaded */}
+                            {block.path && (
+                              <div className="w-full sm:w-48 h-32 relative rounded-xl overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                                <img
+                                  src={getMediaUrl(block.path)}
+                                  alt="Uploaded preview"
+                                  className="w-full h-full object-cover"
+                                />
                               </div>
                             )}
-                            <input
-                              type="file"
-                              accept="image/*"
-                              disabled={block.isUploading}
-                              onChange={(e) => {
-                                const f = e.target.files?.[0];
-                                if (f) handleUpload(block.id, f, "image");
-                                e.target.value = "";
-                              }}
-                              className="hidden"
-                            />
-                          </label>
+                          </div>
 
                           {block.uploadError && (
-                            <p className="text-xs text-red-400 flex items-center gap-1.5">
+                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
                               <AlertCircle className="h-3.5 w-3.5" />
                               <span>{block.uploadError}</span>
                             </p>
                           )}
 
                           {block.path && (
-                            <div className="text-[11px] text-neutral-400 flex items-center gap-2">
-                              <span className="text-pink-400 font-medium">Path:</span>
-                              <span className="truncate max-w-xs">{block.path}</span>
-                              {block.file_size_bytes && <span>({formatBytes(block.file_size_bytes)})</span>}
+                            <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2">
+                              <span className="text-emerald-400 font-medium">Uploaded:</span>
+                              <span className="truncate max-w-xs text-white font-medium">{block.text || block.path.split("/").pop()}</span>
+                              {block.file_size_bytes && (
+                                <span>({formatBytes(block.file_size_bytes)})</span>
+                              )}
                             </div>
                           )}
                         </div>
-                      </div>
-
-                      {/* Captions and notes */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-400 mb-1">
-                            Image Caption / Alt Text
-                          </label>
-                          <input
-                            type="text"
-                            value={block.text || ""}
-                            onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                            placeholder="e.g. Graphic showing product metrics"
-                            className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-400 mb-1">
-                            Prompt / Generation Notes
-                          </label>
-                          <input
-                            type="text"
-                            value={block.script || ""}
-                            onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                            placeholder="e.g. Dimensions: 1080x1080"
-                            className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white focus:outline-none"
-                          />
-                        </div>
-                      </div>
+                      )}
                     </div>
                   )}
 
                   {block.type === "audio" && (
                     <div className="space-y-4">
-                      {/* Audio Player & Replacement */}
-                      <div className="p-4 bg-neutral-800/50 border border-neutral-700/60 rounded-xl space-y-3">
-                        {block.path ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs text-neutral-300">
-                              <span className="font-medium text-emerald-400 flex items-center gap-1.5">
-                                <Mic className="h-3.5 w-3.5" /> Audio Track Player
-                              </span>
-                              {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
-                            </div>
-                            <audio src={getMediaUrl(block.path)} controls className="w-full h-8" />
-                          </div>
-                        ) : (
-                          <p className="text-xs text-neutral-400">No audio file attached.</p>
-                        )}
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Audio Source
+                        </label>
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
 
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
+                            </div>
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/audio/podcast.mp3"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                            />
+                          </div>
+
+                          {block.path && (
+                            <div className="p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-emerald-400 font-medium">Linked Track:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                              </div>
+                              <audio
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full h-8"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                         <div>
                           <label
                             onDragOver={(e) => {
@@ -702,17 +840,22 @@ export default function ContentAdjusterPage() {
                               const f = e.dataTransfer.files?.[0];
                               if (f && !block.isUploading) handleUpload(block.id, f, "audio");
                             }}
-                            className="flex items-center justify-center gap-2 p-3 border border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-xl bg-neutral-800/70 cursor-pointer transition"
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-2xl bg-neutral-850/50 hover:bg-emerald-500/5 cursor-pointer transition"
                           >
                             {block.isUploading ? (
                               <div className="flex items-center gap-2 text-xs text-emerald-400">
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                                <span>Uploading audio...</span>
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <span>Uploading audio track...</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-xs text-neutral-300">
-                                <UploadCloud className="h-4 w-4 text-emerald-400" />
-                                <span>Upload Replacement Audio (MP3, WAV - Max 50MB)</span>
+                              <div className="flex flex-col items-center text-center">
+                                <UploadCloud className="h-6 w-6 text-emerald-400 mb-1.5" />
+                                <span className="text-xs font-medium text-neutral-200">
+                                  Click to upload voiceover or podcast audio
+                                </span>
+                                <span className="text-[10px] text-neutral-400 mt-0.5">
+                                  MP3, WAV, OGG, M4A (Max 50MB) • Supports direct audio playback
+                                </span>
                               </div>
                             )}
                             <input
@@ -734,47 +877,95 @@ export default function ContentAdjusterPage() {
                               <span>{block.uploadError}</span>
                             </p>
                           )}
-                        </div>
-                      </div>
 
-                      {/* Narration Script */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Voiceover Narration Script
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="Adjust spoken transcript text..."
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white focus:outline-none"
-                        />
-                      </div>
+                          {block.path && (
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-emerald-400 font-medium">Uploaded Track:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                                {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                              </div>
+                              <audio
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full h-8"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
 
                   {block.type === "video" && (
                     <div className="space-y-4">
-                      {/* Video Player & Replacement */}
-                      <div className="p-4 bg-neutral-800/50 border border-neutral-700/60 rounded-xl space-y-3">
-                        {block.path ? (
-                          <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs text-neutral-300">
-                              <span className="font-medium text-cyan-400 flex items-center gap-1.5">
-                                <Video className="h-3.5 w-3.5" /> Video Reel Player
-                              </span>
-                              {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Video Source
+                        </label>
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
                             </div>
-                            <video
-                              src={getMediaUrl(block.path)}
-                              controls
-                              className="w-full rounded-lg aspect-video max-h-64 bg-black"
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/videos/promo.mp4"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
                             />
                           </div>
-                        ) : (
-                          <p className="text-xs text-neutral-400">No video file attached.</p>
-                        )}
 
+                          {block.path && (
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400 font-medium">Linked Video:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                              </div>
+                              <video
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full rounded-lg aspect-video max-h-60 bg-black"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
                         <div>
                           <label
                             onDragOver={(e) => {
@@ -787,17 +978,22 @@ export default function ContentAdjusterPage() {
                               const f = e.dataTransfer.files?.[0];
                               if (f && !block.isUploading) handleUpload(block.id, f, "video");
                             }}
-                            className="flex items-center justify-center gap-2 p-3 border border-dashed border-neutral-700 hover:border-cyan-500/50 rounded-xl bg-neutral-800/70 cursor-pointer transition"
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-cyan-500/50 rounded-2xl bg-neutral-850/50 hover:bg-cyan-500/5 cursor-pointer transition"
                           >
                             {block.isUploading ? (
                               <div className="flex items-center gap-2 text-xs text-cyan-400">
-                                <Loader2 className="h-4 w-4 animate-spin" />
+                                <Loader2 className="h-5 w-5 animate-spin" />
                                 <span>Uploading video reel...</span>
                               </div>
                             ) : (
-                              <div className="flex items-center gap-2 text-xs text-neutral-300">
-                                <UploadCloud className="h-4 w-4 text-cyan-400" />
-                                <span>Upload Replacement Video (MP4, MOV - Max 200MB)</span>
+                              <div className="flex flex-col items-center text-center">
+                                <UploadCloud className="h-6 w-6 text-cyan-400 mb-1.5" />
+                                <span className="text-xs font-medium text-neutral-200">
+                                  Click to upload video reel or short
+                                </span>
+                                <span className="text-[10px] text-neutral-400 mt-0.5">
+                                  MP4, MOV, WebM (Max 200MB) • Streamable container
+                                </span>
                               </div>
                             )}
                             <input
@@ -819,22 +1015,25 @@ export default function ContentAdjusterPage() {
                               <span>{block.uploadError}</span>
                             </p>
                           )}
-                        </div>
-                      </div>
 
-                      {/* Video Storyboard / Script */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Video Storyboard / Script
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="Adjust storyboard instructions..."
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white focus:outline-none"
-                        />
-                      </div>
+                          {block.path && (
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400 font-medium">Uploaded Video:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                                {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                              </div>
+                              <video
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full rounded-lg aspect-video max-h-60 bg-black"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -879,7 +1078,7 @@ export default function ContentAdjusterPage() {
               </div>
               <div>
                 <p className="text-sm font-bold text-white">{title || "Untitled Content"}</p>
-                <p className="text-[11px] text-neutral-400">Channel • {formatDate(content.created_at)}</p>
+                <p className="text-[11px] text-neutral-400">Social Channel • {formatDate(content.created_at)}</p>
               </div>
             </div>
 
@@ -900,9 +1099,6 @@ export default function ContentAdjusterPage() {
                         alt={b.text || "Preview"}
                         className="w-full object-cover"
                       />
-                      {b.text && (
-                        <p className="text-xs text-neutral-400 p-2 bg-neutral-950/70">{b.text}</p>
-                      )}
                     </div>
                   );
                 }
