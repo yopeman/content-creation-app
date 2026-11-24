@@ -47,7 +47,8 @@ class LocalStorageService:
         return {
             "filename": unique_name,
             "original_filename": upload_file.filename or unique_name,
-            "path": str(destination_path),
+            "path": f"uploads/{rel_path}",
+            "abs_path": str(destination_path),
             "url": web_url,
             "file_size_bytes": file_size,
             "mime_type": upload_file.content_type or "application/octet-stream",

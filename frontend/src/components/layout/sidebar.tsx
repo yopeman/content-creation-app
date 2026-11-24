@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Sparkles,
   LayoutDashboard,
+  FileText,
   Wand2,
   CalendarDays,
   FolderOpen,
@@ -18,6 +19,7 @@ import { useAuthStore } from "@/store/auth-store";
 
 const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
+  { name: "Content Manager", href: "/contents", icon: FileText },
   { name: "AI Studio", href: "/studio", icon: Wand2 },
   { name: "Campaigns", href: "/campaigns", icon: CalendarDays },
   { name: "Schedule", href: "/schedule", icon: Send },

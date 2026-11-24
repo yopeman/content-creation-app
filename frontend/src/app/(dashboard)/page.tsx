@@ -78,11 +78,18 @@ export default function DashboardOverviewPage() {
               <span>Generate Content with AI</span>
             </Link>
             <Link
-              href="/campaigns/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-sm font-medium border border-neutral-700 transition"
+              href="/contents/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium border border-neutral-700 transition"
             >
               <Plus className="h-4 w-4" />
-              <span>Plan New Campaign</span>
+              <span>Manual Content</span>
+            </Link>
+            <Link
+              href="/campaigns/new"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800/60 hover:bg-neutral-700/60 text-neutral-300 text-sm font-medium border border-neutral-700/80 transition"
+            >
+              <CalendarDays className="h-4 w-4" />
+              <span>Plan Campaign</span>
             </Link>
           </div>
         </div>

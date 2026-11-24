@@ -38,8 +38,8 @@ def validate_magic_bytes(header: bytes, media_type: ContentType) -> bool:
         # PNG
         if header.startswith(b"\x89PNG\r\n\x1a\n"):
             return True
-        # JPEG
-        if header.startswith(b"\xff\xd8\xff"):
+        # JPEG (SOI marker 0xFF 0xD8)
+        if header.startswith(b"\xff\xd8"):
             return True
         # GIF
         if header.startswith(b"GIF87a") or header.startswith(b"GIF89a"):
@@ -183,8 +183,9 @@ async def upload_media(
         "status": "success",
         "detail": {
             "type": resolved_type,
-            "path": result["path"],
+            "path": result["url"],
             "url": result["url"],
+            "abs_path": result.get("abs_path"),
             "mime_type": result["mime_type"],
             "file_size_bytes": result["file_size_bytes"],
             "original_filename": result["original_filename"],

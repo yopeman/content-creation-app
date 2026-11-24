@@ -45,10 +45,7 @@ export default function MediaLibraryPage() {
   });
 
   // Client-side file size and magic-bytes check before uploading
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
+  const processUpload = async (file: File) => {
     setUploadError(null);
     setUploadSuccess(null);
 
@@ -64,9 +61,9 @@ export default function MediaLibraryPage() {
     formData.append("file", file);
 
     try {
-      const res = await apiClient.post("/contents/upload-media", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const res = await apiClient.post("/contents/upload-media", formData);
+
+      const mediaPath = res.data.detail.url || res.data.detail.path;
 
       // Also create a content entry so it shows in the library
       await apiClient.post("/contents", {
@@ -74,7 +71,7 @@ export default function MediaLibraryPage() {
         details: [
           {
             type: res.data.detail.type,
-            path: res.data.detail.path,
+            path: mediaPath,
             order: 1,
             mime_type: res.data.detail.mime_type,
             file_size_bytes: res.data.detail.file_size_bytes,
@@ -89,6 +86,13 @@ export default function MediaLibraryPage() {
       setUploadError(err.response?.data?.detail || "Upload failed. Please check file format.");
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processUpload(file);
       e.target.value = "";
     }
   };
@@ -114,7 +118,19 @@ export default function MediaLibraryPage() {
 
         {/* Upload Button */}
         <div>
-          <label className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer transition">
+          <label
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+            }}
+            onDrop={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              const file = e.dataTransfer.files?.[0];
+              if (file && !isUploading) processUpload(file);
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 active:bg-indigo-700 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 cursor-pointer transition"
+          >
             {isUploading ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
@@ -123,7 +139,7 @@ export default function MediaLibraryPage() {
             <span>{isUploading ? "Uploading..." : "Upload Media Asset"}</span>
             <input
               type="file"
-              onChange={handleFileUpload}
+              onChange={handleFileInputChange}
               disabled={isUploading}
               accept="image/*,audio/*,video/*"
               className="hidden"
@@ -258,12 +274,21 @@ export default function MediaLibraryPage() {
 
                 <div className="border-t border-neutral-800 pt-3 flex items-center justify-between text-xs text-neutral-500">
                   <span>{formatDate(item.created_at)}</span>
-                  <Link
-                    href={`/studio/${item._id}`}
-                    className="text-indigo-400 hover:text-indigo-300 font-semibold"
-                  >
-                    Open Studio
-                  </Link>
+                  <div className="flex items-center gap-3">
+                    <Link
+                      href={`/contents/${item._id}`}
+                      className="text-indigo-400 hover:text-indigo-300 font-semibold"
+                    >
+                      Adjust Content
+                    </Link>
+                    <span className="text-neutral-700">•</span>
+                    <Link
+                      href={`/studio/${item._id}`}
+                      className="text-neutral-400 hover:text-neutral-200"
+                    >
+                      Studio
+                    </Link>
+                  </div>
                 </div>
               </div>
             );

@@ -17,6 +17,18 @@ apiClient.interceptors.request.use((config) => {
       config.headers.Authorization = `Bearer ${token}`;
     }
   }
+
+  // When uploading FormData (multipart/form-data), delete explicit Content-Type
+  // so the browser automatically sets the correct boundary parameter.
+  if (config.data instanceof FormData) {
+    if (config.headers) {
+      delete config.headers["Content-Type"];
+      if (typeof config.headers.delete === "function") {
+        config.headers.delete("Content-Type");
+      }
+    }
+  }
+
   return config;
 });
 
@@ -39,6 +51,16 @@ export function getMediaUrl(pathOrUrl?: string | null): string {
   if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
     return pathOrUrl;
   }
-  const cleanPath = pathOrUrl.startsWith("/") ? pathOrUrl : `/${pathOrUrl}`;
+
+  // Normalize absolute or relative upload paths (e.g. /home/.../uploads/image.png or uploads/image.png)
+  let cleanPath = pathOrUrl;
+  const uploadsIdx = cleanPath.indexOf("uploads/");
+  if (uploadsIdx !== -1) {
+    cleanPath = cleanPath.substring(uploadsIdx + "uploads/".length);
+    cleanPath = `/uploads/${cleanPath}`;
+  } else {
+    cleanPath = cleanPath.startsWith("/") ? cleanPath : `/${cleanPath}`;
+  }
+
   return `${BACKEND_URL}${cleanPath}`;
 }

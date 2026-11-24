@@ -124,6 +124,16 @@ export default function StudioDetailPage() {
             <p className="text-xs text-neutral-400">Iterative AI Prompt Chaining Studio</p>
           </div>
         </div>
+
+        <div className="flex items-center gap-2">
+          <Link
+            href={`/contents/${content._id}`}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            <span>Adjust Manually</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
