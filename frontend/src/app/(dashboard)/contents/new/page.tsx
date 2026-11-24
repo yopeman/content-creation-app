@@ -20,7 +20,6 @@ import {
   Loader2,
   AlertCircle,
   Eye,
-  Check,
   Save,
 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
@@ -42,7 +41,6 @@ export default function NewContentPage() {
       id: "block-1",
       type: "text",
       text: "",
-      script: "",
       order: 1,
     },
   ]);
@@ -55,7 +53,6 @@ export default function NewContentPage() {
       id: `block-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
       type,
       text: "",
-      script: "",
       order: blocks.length + 1,
     };
     setBlocks([...blocks, newBlock]);
@@ -123,18 +120,25 @@ export default function NewContentPage() {
       const res = await apiClient.post("/contents/upload-media", formData);
 
       const detail = res.data.detail;
+      const fileName = detail.original_filename || file.name;
       updateBlock(blockId, {
         isUploading: false,
         path: detail.url || detail.path,
+        text: fileName,
+        script: fileName,
         mime_type: detail.mime_type,
         file_size_bytes: detail.file_size_bytes,
         uploadError: null,
       });
-    } catch (err: any) {
+
+      // Automatically prefill title if not set
+      setTitle((prev) => (prev.trim() ? prev : fileName.replace(/\.[^/.]+$/, "")));
+    } catch (err: unknown) {
+      const errorObj = err as { response?: { data?: { detail?: string } } };
       updateBlock(blockId, {
         isUploading: false,
         uploadError:
-          err.response?.data?.detail || "Media upload failed. Check format and size.",
+          errorObj.response?.data?.detail || "Media upload failed. Check format and size.",
       });
     }
   };
@@ -146,16 +150,19 @@ export default function NewContentPage() {
         throw new Error("Content title is required.");
       }
 
-      // Format payload details
-      const details = blocks.map((b, idx) => ({
-        type: b.type,
-        script: b.script || undefined,
-        path: b.path || undefined,
-        text: b.text || undefined,
-        order: idx + 1,
-        mime_type: b.mime_type || undefined,
-        file_size_bytes: b.file_size_bytes || undefined,
-      }));
+      // Format payload details: media script & text are filled by file name
+      const details = blocks.map((b, idx) => {
+        const fileNameFallback = b.path ? b.path.split("/").pop() : undefined;
+        return {
+          type: b.type,
+          path: b.path || undefined,
+          text: b.type === "text" ? (b.text || undefined) : (b.text || fileNameFallback),
+          script: b.type === "text" ? undefined : (b.script || b.text || fileNameFallback),
+          order: idx + 1,
+          mime_type: b.mime_type || undefined,
+          file_size_bytes: b.file_size_bytes || undefined,
+        };
+      });
 
       const res = await apiClient.post("/contents", {
         title,
@@ -168,8 +175,9 @@ export default function NewContentPage() {
       queryClient.invalidateQueries({ queryKey: ["contents"] });
       router.push(`/contents/${data._id}`);
     },
-    onError: (err: any) => {
-      setError(err.message || err.response?.data?.detail || "Failed to create content.");
+    onError: (err: unknown) => {
+      const errorObj = err as { message?: string; response?: { data?: { detail?: string } } };
+      setError(errorObj.message || errorObj.response?.data?.detail || "Failed to create content.");
     },
   });
 
@@ -404,31 +412,17 @@ export default function NewContentPage() {
 
                   {/* Block Content Inputs */}
                   {block.type === "text" && (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1">
-                          Social Post Text / Caption Body
-                        </label>
-                        <textarea
-                          rows={4}
-                          value={block.text || ""}
-                          onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                          placeholder="Write your engaging caption, hashtags, and announcement copy here..."
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/70 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Script Notes / Production Instructions (Optional)
-                        </label>
-                        <input
-                          type="text"
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="e.g. Tone: confident, target: telegram audience"
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/50 border border-neutral-700/60 text-xs text-neutral-300 placeholder-neutral-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                        />
-                      </div>
+                    <div>
+                      <label className="block text-xs font-medium text-neutral-300 mb-1">
+                        Social Post Text / Caption Body
+                      </label>
+                      <textarea
+                        rows={4}
+                        value={block.text || ""}
+                        onChange={(e) => updateBlock(block.id, { text: e.target.value })}
+                        placeholder="Write your engaging caption, hashtags, and announcement copy here..."
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/70 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                      />
                     </div>
                   )}
 
@@ -437,7 +431,7 @@ export default function NewContentPage() {
                       {/* Image Upload Area */}
                       <div>
                         <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                          Image File (PNG, JPG, WEBP - Max 20MB)
+                          Image File (PNG, JPG, WEBP, GIF - Max 20MB)
                         </label>
                         <div className="flex flex-col sm:flex-row items-center gap-4">
                           <label
@@ -504,40 +498,12 @@ export default function NewContentPage() {
                         {block.path && (
                           <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2">
                             <span className="text-emerald-400 font-medium">Uploaded:</span>
-                            <span className="truncate max-w-xs">{block.path}</span>
+                            <span className="truncate max-w-xs text-white font-medium">{block.text || block.path.split("/").pop()}</span>
                             {block.file_size_bytes && (
                               <span>({formatBytes(block.file_size_bytes)})</span>
                             )}
                           </div>
                         )}
-                      </div>
-
-                      {/* Image Prompt / Alt */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-400 mb-1">
-                            Image Caption / Alt Text
-                          </label>
-                          <input
-                            type="text"
-                            value={block.text || ""}
-                            onChange={(e) => updateBlock(block.id, { text: e.target.value })}
-                            placeholder="e.g. Modern AI Workspace graphic"
-                            className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white placeholder-neutral-500 focus:outline-none"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-xs font-medium text-neutral-400 mb-1">
-                            Prompt / Generation Notes
-                          </label>
-                          <input
-                            type="text"
-                            value={block.script || ""}
-                            onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                            placeholder="e.g. 1080x1080 dark theme graphic"
-                            className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white placeholder-neutral-500 focus:outline-none"
-                          />
-                        </div>
                       </div>
                     </div>
                   )}
@@ -601,7 +567,10 @@ export default function NewContentPage() {
                         {block.path && (
                           <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
                             <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                              <span className="text-emerald-400 font-medium">Uploaded Track</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-emerald-400 font-medium">Uploaded Track:</span>
+                                <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                              </div>
                               {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
                             </div>
                             <audio
@@ -611,20 +580,6 @@ export default function NewContentPage() {
                             />
                           </div>
                         )}
-                      </div>
-
-                      {/* Script / Spoken Text */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Spoken Voiceover Script
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="Exact voiceover script read in this audio..."
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white placeholder-neutral-500 focus:outline-none"
-                        />
                       </div>
                     </div>
                   )}
@@ -688,7 +643,10 @@ export default function NewContentPage() {
                         {block.path && (
                           <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
                             <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                              <span className="text-cyan-400 font-medium">Uploaded Video</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-cyan-400 font-medium">Uploaded Video:</span>
+                                <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                              </div>
                               {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
                             </div>
                             <video
@@ -698,20 +656,6 @@ export default function NewContentPage() {
                             />
                           </div>
                         )}
-                      </div>
-
-                      {/* Video Storyboard / Script */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-400 mb-1">
-                          Video Storyboard / Script
-                        </label>
-                        <textarea
-                          rows={2}
-                          value={block.script || ""}
-                          onChange={(e) => updateBlock(block.id, { script: e.target.value })}
-                          placeholder="Storyboard scenes, timing, and on-screen overlays..."
-                          className="w-full px-3 py-2 rounded-xl bg-neutral-800/60 border border-neutral-700/60 text-xs text-white placeholder-neutral-500 focus:outline-none"
-                        />
                       </div>
                     </div>
                   )}
@@ -758,9 +702,6 @@ export default function NewContentPage() {
                         alt={b.text || "Preview"}
                         className="w-full object-cover"
                       />
-                      {b.text && (
-                        <p className="text-xs text-neutral-400 p-2 bg-neutral-950/70">{b.text}</p>
-                      )}
                     </div>
                   );
                 }
