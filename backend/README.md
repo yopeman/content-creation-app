@@ -1,6 +1,6 @@
 # Yope Content Creation App Backend
 
-FastAPI asynchronous backend for AI-driven content generation, campaign planning, and multi-platform publishing, powered by **Beanie (Pydantic v2)** and **MongoDB**, managed with the modern **uv** package manager.
+FastAPI asynchronous backend for AI-driven content generation and multi-platform publishing, powered by **Beanie (Pydantic v2)** and **MongoDB**, managed with the modern **uv** package manager.
 
 ---
 
@@ -27,7 +27,6 @@ backend/
 │   │       ├── platforms.py     # Connected social media accounts (TG, FB, YB, TK, IG, LN)
 │   │       ├── contents.py      # Content drafts, /upload-media & /generate AI multi-modal agent
 │   │       ├── prompts.py       # Prompt history and token execution tracking
-│   │       ├── plans.py         # Content campaign plans & plan items
 │   │       └── posts.py         # Scheduled posts & per-platform post targets
 │   ├── core/
 │   │   ├── config.py            # Settings (Pydantic BaseSettings from .env)
@@ -41,9 +40,7 @@ backend/
 │   │   ├── prompt.py            # Prompt collection (LLM generation history)
 │   │   ├── content.py           # Content collection & ContentDetail sub-documents
 │   │   ├── post.py              # Post collection
-│   │   ├── post_target.py       # PostTarget collection (per-platform dispatch)
-│   │   ├── plan.py              # Plan collection
-│   │   └── plan_item.py         # PlanItem collection
+│   │   └── post_target.py       # PostTarget collection (per-platform dispatch)
 │   ├── schemas/                 # Request & Response DTOs
 │   ├── services/
 │   │   ├── content_agent.py     # LangChain + Groq multi-modal content generation agent

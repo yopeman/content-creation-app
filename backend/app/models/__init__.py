@@ -1,12 +1,7 @@
-from app.models.campaign import Campaign
 from app.models.content import Content, ContentDetail
 from app.models.enums import (
-    CampaignPermission,
-    CampaignStatus,
     ContentStatus,
     ContentType,
-    PlanItemStatus,
-    PlanStatus,
     PlatformCode,
     PlatformStatus,
     PostStatus,
@@ -15,8 +10,6 @@ from app.models.enums import (
     PromptType,
     UserStatus,
 )
-from app.models.plan import Plan
-from app.models.plan_item import PlanItem
 from app.models.platform import Platform
 from app.models.post import Post
 from app.models.post_target import PostTarget
@@ -30,8 +23,6 @@ __all_models__ = [
     Content,
     Post,
     PostTarget,
-    Campaign,
-    Plan,
 ]
 
 __all__ = [
@@ -42,9 +33,6 @@ __all__ = [
     "ContentDetail",
     "Post",
     "PostTarget",
-    "Campaign",
-    "Plan",
-    "PlanItem",
     "UserStatus",
     "PlatformCode",
     "PlatformStatus",
@@ -54,9 +42,5 @@ __all__ = [
     "ContentStatus",
     "PostStatus",
     "PostTargetStatus",
-    "CampaignStatus",
-    "CampaignPermission",
-    "PlanStatus",
-    "PlanItemStatus",
     "__all_models__",
 ]

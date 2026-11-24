@@ -66,49 +66,6 @@ export interface Content {
   updated_at: string;
 }
 
-export type CampaignStatus = "draft" | "generating" | "ready" | "scheduled" | "done" | "failed";
-export type PlanStatus = "pending" | "generating" | "ready" | "scheduled" | "published" | "failed";
-
-export interface Plan {
-  _id: string;
-  campaign_id?: string;
-  user_id: string;
-  order: number;
-  idea: string;
-  content_id?: string;
-  platform_ids: string[];
-  scheduled_at?: string;
-  status: PlanStatus;
-  formats: ContentType[];
-  error?: string;
-  created_at: string;
-  updated_at: string;
-  campaign_title?: string;
-  campaign_color?: string;
-  content_title?: string;
-  content_status?: string;
-}
-
-export interface Campaign {
-  _id: string;
-  user_id: string;
-  title?: string;
-  idea: string;
-  goal?: string;
-  context?: string;
-  number_of_content: number;
-  color_hash_code?: string;
-  color_has_code?: string;
-  color_hex_code?: string;
-  permission: string;
-  status: CampaignStatus;
-  start_date?: string;
-  end_date?: string;
-  plans: Plan[];
-  created_at: string;
-  updated_at: string;
-}
-
 export type PostStatus = "draft" | "scheduled" | "publishing" | "published" | "partial" | "failed";
 export type PostTargetStatus = "pending" | "publishing" | "published" | "failed" | "skipped";
 
@@ -133,8 +90,6 @@ export interface Post {
   _id: string;
   user_id: string;
   content_id: string;
-  campaign_id?: string;
-  plan_id?: string;
   scheduled_at?: string;
   status: PostStatus;
   targets: PostTarget[];
@@ -147,9 +102,7 @@ export interface Prompt {
   parent_prompt_id?: string;
   user_id: string;
   content_id?: string;
-  campaign_id?: string;
-  plan_id?: string;
-  type: "content" | "campaign" | "plan" | "plan_item";
+  type: "content";
   prompt: string;
   response?: string;
   model: string;

@@ -3,9 +3,9 @@
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import { Campaign, Content, Post, Platform } from "@/types";
+import { Content, Post, Platform } from "@/types";
 import {
-  CalendarDays,
+  FileText,
   Wand2,
   Send,
   Radio,
@@ -18,15 +18,7 @@ import {
 import { formatDate } from "@/lib/utils";
 
 export default function DashboardOverviewPage() {
-  const { data: campaigns = [], isLoading: loadingCampaigns } = useQuery<Campaign[]>({
-    queryKey: ["campaigns"],
-    queryFn: async () => {
-      const res = await apiClient.get<Campaign[]>("/campaigns");
-      return res.data;
-    },
-  });
-
-  const { data: contents = [] } = useQuery<Content[]>({
+  const { data: contents = [], isLoading: loadingContents } = useQuery<Content[]>({
     queryKey: ["contents"],
     queryFn: async () => {
       const res = await apiClient.get<Content[]>("/contents");
@@ -66,8 +58,7 @@ export default function DashboardOverviewPage() {
             Welcome to Yope Creator
           </h1>
           <p className="mt-2 text-sm text-neutral-300 leading-relaxed">
-            Generate viral social posts, brainstorm full marketing campaigns, produce
-            audio voiceovers and video reels, and publish to Telegram in one automated workflow.
+            Generate viral social posts, produce audio voiceovers and video reels, and publish to Telegram in one automated workflow.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
@@ -82,14 +73,7 @@ export default function DashboardOverviewPage() {
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium border border-neutral-700 transition"
             >
               <Plus className="h-4 w-4" />
-              <span>Manual Content</span>
-            </Link>
-            <Link
-              href="/campaigns/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800/60 hover:bg-neutral-700/60 text-neutral-300 text-sm font-medium border border-neutral-700/80 transition"
-            >
-              <CalendarDays className="h-4 w-4" />
-              <span>Plan Campaign</span>
+              <span>New Content</span>
             </Link>
           </div>
         </div>
@@ -99,37 +83,35 @@ export default function DashboardOverviewPage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Total Campaigns</span>
+            <span className="text-xs font-medium text-neutral-400">Total Contents</span>
             <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
-              <CalendarDays className="h-4 w-4" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold text-white mt-3">{campaigns.length}</p>
-          <p className="text-xs text-neutral-500 mt-1">Multi-channel strategies</p>
-        </div>
-
-        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">AI Contents Drafted</span>
-            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
-              <Wand2 className="h-4 w-4" />
+              <FileText className="h-4 w-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-white mt-3">{contents.length}</p>
-          <p className="text-xs text-neutral-500 mt-1">Text, image, audio & video assets</p>
+          <p className="text-xs text-neutral-500 mt-1">Multi-modal content assets</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Published / Scheduled</span>
+            <span className="text-xs font-medium text-neutral-400">Scheduled Posts</span>
+            <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
+              <Clock className="h-4 w-4" />
+            </div>
+          </div>
+          <p className="text-2xl font-bold text-white mt-3">{scheduledCount}</p>
+          <p className="text-xs text-neutral-500 mt-1">Ready for automated dispatch</p>
+        </div>
+
+        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-neutral-400">Published Posts</span>
             <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
               <Send className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-3">
-            {publishedCount} <span className="text-neutral-500 text-base font-normal">/ {scheduledCount} due</span>
-          </p>
-          <p className="text-xs text-neutral-500 mt-1">Target dispatch channels</p>
+          <p className="text-2xl font-bold text-white mt-3">{publishedCount}</p>
+          <p className="text-xs text-neutral-500 mt-1">Delivered to connected channels</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
@@ -146,14 +128,14 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Grid: Campaigns & Recent Activity */}
+      {/* Grid: Contents & Quick Platform Status */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Active Campaigns */}
+        {/* Recent Contents */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Active Campaigns</h2>
+            <h2 className="text-lg font-semibold text-white">Recent Content</h2>
             <Link
-              href="/campaigns"
+              href="/contents"
               className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
             >
               <span>View all</span>
@@ -161,50 +143,47 @@ export default function DashboardOverviewPage() {
             </Link>
           </div>
 
-          {loadingCampaigns ? (
+          {loadingContents ? (
             <div className="h-48 rounded-2xl bg-neutral-900/50 border border-neutral-800 animate-pulse flex items-center justify-center text-neutral-500 text-sm">
-              Loading campaigns...
+              Loading content...
             </div>
-          ) : campaigns.length === 0 ? (
+          ) : contents.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center bg-neutral-900/30">
-              <CalendarDays className="h-8 w-8 text-neutral-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-neutral-300">No campaigns yet</p>
+              <FileText className="h-8 w-8 text-neutral-600 mx-auto mb-2" />
+              <p className="text-sm font-medium text-neutral-300">No content created yet</p>
               <p className="text-xs text-neutral-500 mt-1">
-                Create an editorial campaign or generate one with AI to get started.
+                Draft content manually or generate multi-modal assets with AI.
               </p>
               <Link
-                href="/campaigns/new"
+                href="/studio"
                 className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
               >
-                <Plus className="h-3.5 w-3.5" />
-                <span>Create Campaign</span>
+                <Wand2 className="h-3.5 w-3.5" />
+                <span>Open Studio</span>
               </Link>
             </div>
           ) : (
             <div className="space-y-3">
-              {campaigns.slice(0, 4).map((c) => {
-                const color = c.color_hash_code || c.color_hex_code || "#6366F1";
-                const planCount = c.plans?.length || 0;
-                const readyPlans = c.plans?.filter((p) => p.status === "ready").length || 0;
+              {contents.slice(0, 5).map((c) => {
+                const textDetail = c.details.find((d) => d.type === "text");
+                const formatCount = c.details?.length || 0;
 
                 return (
                   <Link
                     key={c._id}
-                    href={`/campaigns/${c._id}`}
+                    href={`/contents/${c._id}`}
                     className="block p-4 rounded-xl bg-neutral-900/60 border border-neutral-800/80 hover:border-neutral-700 hover:bg-neutral-800/40 transition group"
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-center gap-3">
-                        <div
-                          className="h-3 w-3 rounded-full shrink-0"
-                          style={{ backgroundColor: color }}
-                        />
-                        <div>
-                          <h3 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition">
-                            {c.title || c.idea}
-                          </h3>
-                          <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">{c.idea}</p>
-                        </div>
+                      <div>
+                        <h3 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition">
+                          {c.title}
+                        </h3>
+                        {textDetail?.text && (
+                          <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
+                            {textDetail.text}
+                          </p>
+                        )}
                       </div>
                       <span className="text-[11px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 font-medium capitalize">
                         {c.status}
@@ -212,10 +191,8 @@ export default function DashboardOverviewPage() {
                     </div>
 
                     <div className="mt-3 flex items-center justify-between text-[11px] text-neutral-500 border-t border-neutral-800/60 pt-2.5">
-                      <span>{planCount} scheduled plans</span>
-                      <span>
-                        {readyPlans}/{planCount} ready for dispatch
-                      </span>
+                      <span>{formatCount} format(s) attached</span>
+                      <span>Created {formatDate(c.created_at)}</span>
                     </div>
                   </Link>
                 );

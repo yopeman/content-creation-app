@@ -7,12 +7,9 @@ import {
   LayoutDashboard,
   FileText,
   Wand2,
-  CalendarDays,
-  ListTodo,
   FolderOpen,
   Send,
   Radio,
-  Settings,
   LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -22,8 +19,6 @@ const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Content Manager", href: "/contents", icon: FileText },
   { name: "AI Studio", href: "/studio", icon: Wand2 },
-  { name: "Campaigns", href: "/campaigns", icon: CalendarDays },
-  { name: "Plans", href: "/plans", icon: ListTodo },
   { name: "Schedule", href: "/schedule", icon: Send },
   { name: "Media Library", href: "/library", icon: FolderOpen },
   { name: "Connected Platforms", href: "/settings/platforms", icon: Radio },

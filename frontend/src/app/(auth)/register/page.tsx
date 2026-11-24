@@ -54,7 +54,7 @@ export default function RegisterPage() {
 
         <h2 className="text-2xl font-semibold text-white mb-2">Create an account</h2>
         <p className="text-sm text-neutral-400 mb-6">
-          Start generating, planning, and publishing social content in minutes.
+          Start generating, creating, and publishing social content in minutes.
         </p>
 
         {error && (

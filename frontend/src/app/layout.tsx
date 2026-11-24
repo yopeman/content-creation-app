@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Yope - AI Content Creation & Publishing Platform",
-  description: "Generate, plan, and dispatch multi-modal social content effortlessly.",
+  description: "Generate, schedule, and dispatch multi-modal social content effortlessly.",
 };
 
 export default function RootLayout({

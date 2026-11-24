@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Wand2, Plus, Bell } from "lucide-react";
+import { Wand2, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
 
 export function TopBar() {
@@ -25,11 +25,11 @@ export function TopBar() {
         </Link>
 
         <Link
-          href="/campaigns/new"
+          href="/contents/new"
           className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium shadow-md shadow-indigo-600/20 transition"
         >
           <Plus className="h-3.5 w-3.5" />
-          <span>New Campaign</span>
+          <span>New Content</span>
         </Link>
       </div>
     </header>

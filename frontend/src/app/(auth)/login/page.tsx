@@ -54,7 +54,7 @@ export default function LoginPage() {
 
         <h2 className="text-2xl font-semibold text-white mb-2">Welcome back</h2>
         <p className="text-sm text-neutral-400 mb-6">
-          Sign in to your account to manage campaigns and AI content.
+          Sign in to your account to manage your content and AI generations.
         </p>
 
         {error && (

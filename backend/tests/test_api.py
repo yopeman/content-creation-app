@@ -292,7 +292,7 @@ async def test_local_file_upload_and_content_creation(auth_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_plan_and_post_flow(auth_client: AsyncClient):
+async def test_post_flow(auth_client: AsyncClient):
     # 1. Connect a platform account via specialized TG endpoint
     platform_resp = await auth_client.post(
         "/api/v1/platforms/tg",
@@ -316,30 +316,7 @@ async def test_plan_and_post_flow(auth_client: AsyncClient):
     assert content_resp.status_code == 201
     content_id = content_resp.json()["_id"]
 
-    # 3. Create a Plan with an item
-    plan_resp = await auth_client.post(
-        "/api/v1/plans",
-        json={
-            "idea": "Q4 AI Trends Campaign",
-            "context": "Focus on developer tooling and content creation workflows",
-            "number_of_content": 1,
-            "items": [
-                {
-                    "order": 1,
-                    "idea": "AI in Video Production",
-                    "content_id": content_id,
-                    "platform_ids": [platform_id],
-                    "formats": ["video", "text"],
-                }
-            ],
-        },
-    )
-    assert plan_resp.status_code == 201
-    plan_data = plan_resp.json()
-    assert plan_data["idea"] == "Q4 AI Trends Campaign"
-    assert len(plan_data["items"]) == 1
-
-    # 4. Schedule a Post with a PostTarget (dispatches to Telegram with native schedule)
+    # 3. Schedule a Post with a PostTarget (dispatches to Telegram with native schedule)
     post_resp = await auth_client.post(
         "/api/v1/posts",
         json={
@@ -474,46 +451,6 @@ async def test_ai_content_generation_agent(auth_client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_ai_plan_and_plan_item_generation(auth_client: AsyncClient):
-    # 1. AI Campaign Plan Generation (logs type=PromptType.PLAN)
-    plan_gen_payload = {
-        "idea": "Developer Tools Launch 2026",
-        "context": "DevOps and FullStack Engineers",
-        "number_of_content": 2,
-    }
-    plan_resp = await auth_client.post("/api/v1/plans/generate", json=plan_gen_payload)
-    assert plan_resp.status_code == 201
-    plan_data = plan_resp.json()
-    assert plan_data["idea"] == "Developer Tools Launch 2026"
-    assert len(plan_data["items"]) == 2
-    plan_id = plan_data["_id"]
-    plan_item_id = plan_data["items"][0]["_id"]
-
-    # Verify Prompt record logged for the plan
-    plan_prompts_resp = await auth_client.get(f"/api/v1/prompts?plan_id={plan_id}")
-    assert plan_prompts_resp.status_code == 200
-    plan_prompts = plan_prompts_resp.json()
-    assert any(p["type"] == "plan" and p["plan_id"] == plan_id for p in plan_prompts)
-
-    # 2. AI Content Generation for a specific Plan Item (logs type=PromptType.PLAN_ITEM)
-    item_gen_resp = await auth_client.post(f"/api/v1/plans/{plan_id}/items/{plan_item_id}/generate-content")
-    assert item_gen_resp.status_code == 201
-    item_content = item_gen_resp.json()
-    assert "_id" in item_content
-    generated_content_id = item_content["_id"]
-    assert len(item_content["details"]) == 4
-
-    # Verify Prompt record logged for this specific plan item
-    item_prompts_resp = await auth_client.get(f"/api/v1/prompts?plan_item_id={plan_item_id}")
-    assert item_prompts_resp.status_code == 200
-    item_prompts = item_prompts_resp.json()
-    assert len(item_prompts) == 1
-    assert item_prompts[0]["type"] == "plan_item"
-    assert item_prompts[0]["content_id"] == generated_content_id
-    assert item_prompts[0]["plan_id"] == plan_id
-
-
-@pytest.mark.asyncio
 async def test_prompt_chaining_and_content_improvement(auth_client: AsyncClient):
     # 1. Initial Content Generation (Root Prompt in Chain)
     initial_payload = {
@@ -616,22 +553,6 @@ async def test_media_upload_magic_bytes_and_size_limits(auth_client: AsyncClient
     assert audio_resp.json()["detail"]["type"] == "audio"
 
 
-@pytest.mark.asyncio
-async def test_campaign_color_hash_code_direct(auth_client: AsyncClient):
-    # Direct test using color_hash_code
-    camp_resp = await auth_client.post(
-        "/api/v1/campaigns",
-        json={
-            "title": "Brand Redesign 2026",
-            "idea": "Modern typography and palette refresh",
-            "color_hash_code": "#EC4899",
-        },
-    )
-    assert camp_resp.status_code == 201
-    data = camp_resp.json()
-    assert data["color_hash_code"] == "#EC4899"
-    assert data["color_has_code"] == "#EC4899"
-    assert data["color_hex_code"] == "#EC4899"
 
 
 

@@ -99,7 +99,7 @@ export default function SchedulePage() {
           <Send className="h-10 w-10 text-neutral-600 mx-auto mb-3" />
           <h3 className="text-base font-semibold text-white">No posts scheduled</h3>
           <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-            Create or generate content in the Studio or Campaigns and schedule them for dispatch.
+            Create or generate content in the Studio or Content Manager and schedule them for dispatch.
           </p>
         </div>
       ) : (

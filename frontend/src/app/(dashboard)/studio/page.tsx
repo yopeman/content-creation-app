@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
-import { Campaign, Content, ContentType } from "@/types";
+import { Content, ContentType } from "@/types";
 import {
   Wand2,
   Sparkles,
@@ -15,7 +15,6 @@ import {
   Video,
   Copy,
   Check,
-  Send,
   ArrowRight,
   ExternalLink,
 } from "lucide-react";
@@ -26,7 +25,6 @@ export default function StudioPage() {
 
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
-  const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
   const [formats, setFormats] = useState<ContentType[]>([
     "text",
     "image",
@@ -35,14 +33,6 @@ export default function StudioPage() {
   ]);
   const [generatedContent, setGeneratedContent] = useState<Content | null>(null);
   const [copied, setCopied] = useState(false);
-
-  const { data: campaigns = [] } = useQuery<Campaign[]>({
-    queryKey: ["campaigns"],
-    queryFn: async () => {
-      const res = await apiClient.get<Campaign[]>("/campaigns");
-      return res.data;
-    },
-  });
 
   const toggleFormat = (fmt: ContentType) => {
     if (formats.includes(fmt)) {
@@ -59,7 +49,6 @@ export default function StudioPage() {
       const res = await apiClient.post<Content>("/generations", {
         prompt,
         title: title || undefined,
-        campaign_id: selectedCampaignId || undefined,
         formats,
       });
       return res.data;
@@ -109,37 +98,17 @@ export default function StudioPage() {
           />
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Title (Optional)
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Next-Gen AI Feature Launch"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-              Link to Campaign (Optional)
-            </label>
-            <select
-              value={selectedCampaignId}
-              onChange={(e) => setSelectedCampaignId(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
-            >
-              <option value="">No Campaign (Standalone)</option>
-              {campaigns.map((c) => (
-                <option key={c._id} value={c._id}>
-                  {c.title || c.idea}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div>
+          <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+            Title (Optional)
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Next-Gen AI Feature Launch"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
         </div>
 
         {/* Modality Toggles */}

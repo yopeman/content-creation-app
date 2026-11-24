@@ -27,9 +27,6 @@ class ContentGenerateRequest(BaseModel):
     """Payload to trigger the LangChain + Groq content generation agent."""
     prompt: str = Field(..., description="High-level topic or prompt for AI content generation", min_length=3)
     title: Optional[str] = Field(None, description="Optional title (auto-generated from topic if omitted)")
-    campaign_id: Optional[PydanticObjectId] = Field(None, description="Optional linked campaign ID")
-    plan_id: Optional[PydanticObjectId] = Field(None, description="Optional linked plan ID")
-    plan_item_id: Optional[PydanticObjectId] = Field(None, description="Optional linked plan item ID")
     formats: Optional[List[ContentType]] = Field(
         None,
         description="Optional list of formats to produce (defaults to all supported: text, image, audio, video)",

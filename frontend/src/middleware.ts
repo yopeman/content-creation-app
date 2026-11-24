@@ -8,7 +8,7 @@ export function middleware(request: NextRequest) {
   const isAuthRoute = pathname.startsWith("/login") || pathname.startsWith("/register");
   const isDashboardRoute =
     pathname === "/" ||
-    pathname.startsWith("/campaigns") ||
+    pathname.startsWith("/contents") ||
     pathname.startsWith("/studio") ||
     pathname.startsWith("/library") ||
     pathname.startsWith("/schedule") ||
@@ -32,7 +32,7 @@ export const config = {
     "/",
     "/login",
     "/register",
-    "/campaigns/:path*",
+    "/contents/:path*",
     "/studio/:path*",
     "/library/:path*",
     "/schedule/:path*",
