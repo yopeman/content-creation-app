@@ -5,16 +5,27 @@ import { apiClient } from "@/lib/api-client";
 import { Post, Content } from "@/types";
 import {
   Send,
-  Calendar,
-  CheckCircle2,
   Clock,
   AlertCircle,
   ExternalLink,
   Loader2,
   RefreshCw,
+  RotateCcw,
 } from "lucide-react";
-import Link from "next/link";
 import { formatDate } from "@/lib/utils";
+
+function getErrorMessage(err: unknown, fallback: string): string {
+  if (err && typeof err === "object" && "response" in err) {
+    const res = (err as { response?: { data?: { detail?: string } } }).response;
+    if (res?.data?.detail) {
+      return res.data.detail;
+    }
+  }
+  if (err instanceof Error) {
+    return err.message;
+  }
+  return fallback;
+}
 
 export default function SchedulePage() {
   const queryClient = useQueryClient();
@@ -43,6 +54,29 @@ export default function SchedulePage() {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       alert("Post successfully dispatched!");
     },
+    onError: (err: unknown) => {
+      alert(`Error dispatching post: ${getErrorMessage(err, "Failed to dispatch post.")}`);
+    },
+  });
+
+  const retryMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await apiClient.post<Post>(`/posts/${postId}/publish`);
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      if (data.status === "failed") {
+        alert("Retry attempted, but dispatch failed. Please check platform connection and error details.");
+      } else if (data.status === "partial") {
+        alert("Post partially dispatched. Some targets succeeded while others failed.");
+      } else {
+        alert("Post retried and dispatched successfully!");
+      }
+    },
+    onError: (err: unknown) => {
+      alert(`Error retrying post: ${getErrorMessage(err, "Failed to retry post.")}`);
+    },
   });
 
   const workerMutation = useMutation({
@@ -53,6 +87,9 @@ export default function SchedulePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       alert(`Background worker ran successfully: processed ${data.processed_count} due post(s).`);
+    },
+    onError: (err: unknown) => {
+      alert(`Error running background worker: ${getErrorMessage(err, "Worker trigger failed.")}`);
     },
   });
 
@@ -109,6 +146,16 @@ export default function SchedulePage() {
             const isDraft = post.status === "draft";
             const isPublished = post.status === "published";
             const isScheduled = post.status === "scheduled";
+            const isFailed = post.status === "failed";
+            const isPartial = post.status === "partial";
+            const isPublishing = post.status === "publishing";
+
+            const hasFailedTargets = post.targets?.some((t) => t.status === "failed");
+            const canRetry = isFailed || isPartial || hasFailedTargets;
+
+            const isPublishingThis = publishMutation.isPending && publishMutation.variables === post._id;
+            const isRetryingThis = retryMutation.isPending && retryMutation.variables === post._id;
+            const isActionPending = isPublishingThis || isRetryingThis;
 
             return (
               <div
@@ -123,6 +170,12 @@ export default function SchedulePage() {
                           ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                           : isScheduled
                           ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
+                          : isFailed
+                          ? "bg-rose-500/10 text-rose-400 border border-rose-500/20"
+                          : isPartial
+                          ? "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          : isPublishing
+                          ? "bg-indigo-500/10 text-indigo-400 border border-indigo-500/20"
                           : "bg-neutral-800 text-neutral-400"
                       }`}
                     >
@@ -143,42 +196,98 @@ export default function SchedulePage() {
 
                   {/* Targets List */}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
-                    {post.targets?.map((t) => (
-                      <div
-                        key={t._id}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-800/80 border border-neutral-700/60 text-xs text-neutral-300"
-                      >
-                        <span className="font-bold text-sky-400 font-mono text-[10px]">{t.platform_code}</span>
-                        <span>•</span>
-                        <span className="capitalize">{t.status}</span>
-                        {t.external_url && (
-                          <a
-                            href={t.external_url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="text-indigo-400 hover:text-indigo-300 inline-flex items-center ml-1"
+                    {post.targets?.map((t) => {
+                      const isTargetFailed = t.status === "failed";
+                      const isTargetPublished = t.status === "published";
+
+                      return (
+                        <div
+                          key={t._id}
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs ${
+                            isTargetFailed
+                              ? "bg-rose-500/10 border border-rose-500/30 text-rose-300"
+                              : isTargetPublished
+                              ? "bg-emerald-500/10 border border-emerald-500/20 text-emerald-300"
+                              : "bg-neutral-800/80 border border-neutral-700/60 text-neutral-300"
+                          }`}
+                          title={t.error || undefined}
+                        >
+                          <span
+                            className={`font-bold font-mono text-[10px] ${
+                              isTargetFailed
+                                ? "text-rose-400"
+                                : isTargetPublished
+                                ? "text-emerald-400"
+                                : "text-sky-400"
+                            }`}
                           >
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
-                        )}
-                      </div>
-                    ))}
+                            {t.platform_code}
+                          </span>
+                          <span>•</span>
+                          <span className="capitalize">{t.status}</span>
+                          {isTargetFailed && <AlertCircle className="h-3 w-3 text-rose-400 shrink-0" />}
+                          {t.external_url && (
+                            <a
+                              href={t.external_url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-indigo-400 hover:text-indigo-300 inline-flex items-center ml-1"
+                            >
+                              <ExternalLink className="h-3 w-3" />
+                            </a>
+                          )}
+                        </div>
+                      );
+                    })}
                   </div>
+
+                  {/* Target error messages if failed */}
+                  {post.targets
+                    ?.filter((t) => t.status === "failed" && t.error)
+                    .map((t) => (
+                      <p
+                        key={`err-${t._id}`}
+                        className="mt-1.5 text-xs text-rose-400/90 flex items-center gap-1.5"
+                      >
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0 text-rose-400" />
+                        <span>
+                          <strong className="font-semibold">{t.platform_code}:</strong> {t.error}
+                        </span>
+                      </p>
+                    ))}
                 </div>
 
                 <div className="flex items-center gap-2 shrink-0">
                   {isDraft && (
                     <button
+                      type="button"
                       onClick={() => publishMutation.mutate(post._id)}
-                      disabled={publishMutation.isPending}
+                      disabled={isActionPending}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
                     >
-                      {publishMutation.isPending ? (
+                      {isPublishingThis ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Send className="h-3.5 w-3.5" />
                       )}
                       <span>Publish Now</span>
+                    </button>
+                  )}
+
+                  {canRetry && !isDraft && (
+                    <button
+                      type="button"
+                      onClick={() => retryMutation.mutate(post._id)}
+                      disabled={isActionPending}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition disabled:opacity-50"
+                      title="Retry dispatching failed post"
+                    >
+                      {isRetryingThis ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <RotateCcw className="h-3.5 w-3.5" />
+                      )}
+                      <span>Retry</span>
                     </button>
                   )}
                 </div>

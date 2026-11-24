@@ -8,22 +8,76 @@ from app.core.config import settings
 from app.models.enums import ContentType
 
 
-def _resolve_local_media_path(path_str: str) -> Optional[Path]:
-    """Resolves local media file path from absolute or relative string."""
-    p = Path(path_str)
-    if p.is_file():
-        return p
+def _is_http_url(url: Optional[str]) -> bool:
+    """Checks if a string is a valid remote HTTP or HTTPS URL."""
+    if not url or not isinstance(url, str):
+        return False
+    clean = url.strip().lower()
+    return clean.startswith("http://") or clean.startswith("https://")
 
-    # Handle uploads/ relative paths
-    if path_str.startswith("uploads/"):
-        rel = path_str[len("uploads/"):].lstrip("/")
-        candidate = settings.upload_path / rel
-        if candidate.is_file():
-            return candidate
 
-    candidate2 = settings.upload_path / path_str.lstrip("/")
-    if candidate2.is_file():
-        return candidate2
+def _resolve_local_media_path(path_str: Optional[str]) -> Optional[Path]:
+    """Resolves local media file path from absolute, relative, or file:// string."""
+    if not path_str or not isinstance(path_str, str):
+        return None
+
+    clean = path_str.strip()
+    if not clean:
+        return None
+
+    # Handle file:// URI scheme
+    if clean.startswith("file://"):
+        clean = clean[len("file://"):]
+
+    # Remote web URLs are not local files
+    if clean.startswith("http://") or clean.startswith("https://"):
+        return None
+
+    # 1. Direct path check (e.g. absolute path or current working directory relative)
+    p = Path(clean)
+    try:
+        if p.is_file():
+            return p.resolve()
+    except Exception:
+        pass
+
+    # 2. Strip leading slashes to handle "/uploads/..." or "uploads/..."
+    no_lead = clean.lstrip("/")
+    if no_lead.startswith("uploads/"):
+        rel_inside_uploads = no_lead[len("uploads/"):].lstrip("/")
+        candidate = settings.upload_path / rel_inside_uploads
+        try:
+            if candidate.is_file():
+                return candidate.resolve()
+        except Exception:
+            pass
+
+    # 3. Candidate directly inside upload_path (e.g. "image/foo.png", "audio/bar.mp3", etc.)
+    candidate2 = settings.upload_path / no_lead
+    try:
+        if candidate2.is_file():
+            return candidate2.resolve()
+    except Exception:
+        pass
+
+    # 4. Candidate relative to BASE_DIR
+    candidate3 = settings.BASE_DIR / no_lead
+    try:
+        if candidate3.is_file():
+            return candidate3.resolve()
+    except Exception:
+        pass
+
+    # 5. Search by basename inside subdirectories of upload_path (image, video, audio)
+    file_name = Path(clean).name
+    if file_name:
+        for sub in ["image", "video", "audio", ""]:
+            cand = settings.upload_path / sub / file_name if sub else settings.upload_path / file_name
+            try:
+                if cand.is_file():
+                    return cand.resolve()
+            except Exception:
+                pass
 
     return None
 
@@ -164,6 +218,8 @@ async def send_telegram_post(
                     err_desc = resp.json().get("description", resp.text)
                 except Exception:
                     err_desc = resp.text
+                if "invalid file http url specified" in err_desc.lower():
+                    err_desc += " (invalid media URL or missing local file; must be a valid public HTTP(S) URL or uploaded file)"
                 last_error = f"Telegram error ({resp.status_code}): {err_desc}"
                 return None
 
@@ -180,20 +236,32 @@ async def send_telegram_post(
                 caption = ""
                 if not caption_used:
                     caption = combined_text[:1024]
-                    caption_used = True
                 else:
                     caption = (getattr(item, "text", "") or getattr(item, "script", "") or "")[:1024]
 
                 if v_type == ContentType.IMAGE:
                     data = {**base_data, "caption": caption}
                     if p_file:
-                        mime = mimetypes.guess_type(p_file.name)[0] or "image/png"
+                        is_gif = p_file.name.lower().endswith(".gif")
+                        endpoint = "sendAnimation" if is_gif else "sendPhoto"
+                        file_key = "animation" if is_gif else "photo"
+                        mime = mimetypes.guess_type(p_file.name)[0] or ("image/gif" if is_gif else "image/png")
                         with open(p_file, "rb") as f:
-                            r = await _call_tg("sendPhoto", data=data, files={"photo": (p_file.name, f.read(), mime)})
-                    else:
+                            r = await _call_tg(endpoint, data=data, files={file_key: (p_file.name, f.read(), mime)})
+                        res = _parse_resp(r)
+                        if res:
+                            caption_used = True
+                    elif _is_http_url(item.path):
                         data["photo"] = item.path
                         r = await _call_tg("sendPhoto", data=data)
-                    _parse_resp(r)
+                        res = _parse_resp(r)
+                        if res:
+                            caption_used = True
+                    else:
+                        # Path does not exist locally and is not a valid HTTP URL.
+                        # Do NOT forward invalid local path as a URL string to Telegram to prevent
+                        # 'Telegram error (400): Bad Request: invalid file HTTP URL specified: URL host is empty'
+                        last_error = f"Image file '{item.path}' not found on server and is not a valid HTTP URL."
 
                 elif v_type == ContentType.VIDEO:
                     data = {**base_data, "caption": caption}
@@ -201,10 +269,17 @@ async def send_telegram_post(
                         mime = mimetypes.guess_type(p_file.name)[0] or "video/mp4"
                         with open(p_file, "rb") as f:
                             r = await _call_tg("sendVideo", data=data, files={"video": (p_file.name, f.read(), mime)})
-                    else:
+                        res = _parse_resp(r)
+                        if res:
+                            caption_used = True
+                    elif _is_http_url(item.path):
                         data["video"] = item.path
                         r = await _call_tg("sendVideo", data=data)
-                    _parse_resp(r)
+                        res = _parse_resp(r)
+                        if res:
+                            caption_used = True
+                    else:
+                        last_error = f"Video file '{item.path}' not found on server and is not a valid HTTP URL."
 
             # 2. If no visual media was posted, send text post
             if not caption_used and combined_text:
@@ -220,10 +295,14 @@ async def send_telegram_post(
                     mime = mimetypes.guess_type(p_file.name)[0] or "audio/mpeg"
                     with open(p_file, "rb") as f:
                         r = await _call_tg("sendAudio", data=data, files={"audio": (p_file.name, f.read(), mime)})
-                else:
+                    _parse_resp(r)
+                elif _is_http_url(a_item.path):
                     data["audio"] = a_item.path
                     r = await _call_tg("sendAudio", data=data)
-                _parse_resp(r)
+                    _parse_resp(r)
+                else:
+                    if not last_error:
+                        last_error = f"Audio file '{a_item.path}' not found on server and is not a valid HTTP URL."
 
             if sent_message_ids:
                 return {
@@ -242,23 +321,27 @@ async def send_telegram_post(
         # -------------------------------------------------------------
         try:
             local_file = _resolve_local_media_path(media_path) if media_path else None
-            # 1. Image upload / sendPhoto
-            if media_type == ContentType.IMAGE and (local_file or media_path):
-                url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
+            # 1. Image upload / sendPhoto or sendAnimation
+            if media_type == ContentType.IMAGE and (local_file or _is_http_url(media_path)):
                 caption = (text or override.get("caption") or "")[:1024]
                 data = {**base_data, "caption": caption}
 
                 if local_file:
-                    mime = mimetypes.guess_type(local_file.name)[0] or "image/png"
+                    is_gif = local_file.name.lower().endswith(".gif")
+                    endpoint = "sendAnimation" if is_gif else "sendPhoto"
+                    file_key = "animation" if is_gif else "photo"
+                    mime = mimetypes.guess_type(local_file.name)[0] or ("image/gif" if is_gif else "image/png")
                     with open(local_file, "rb") as f:
-                        files = {"photo": (local_file.name, f.read(), mime)}
+                        files = {file_key: (local_file.name, f.read(), mime)}
+                        url = f"https://api.telegram.org/bot{bot_token}/{endpoint}"
                         response = await client.post(url, data=data, files=files)
                 else:
+                    url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
                     data["photo"] = media_path
                     response = await client.post(url, data=data)
 
             # 2. Video upload / sendVideo
-            elif media_type == ContentType.VIDEO and (local_file or media_path):
+            elif media_type == ContentType.VIDEO and (local_file or _is_http_url(media_path)):
                 url = f"https://api.telegram.org/bot{bot_token}/sendVideo"
                 caption = (text or override.get("caption") or "")[:1024]
                 data = {**base_data, "caption": caption}
@@ -273,7 +356,7 @@ async def send_telegram_post(
                     response = await client.post(url, data=data)
 
             # 3. Audio upload / sendAudio
-            elif media_type == ContentType.AUDIO and (local_file or media_path):
+            elif media_type == ContentType.AUDIO and (local_file or _is_http_url(media_path)):
                 url = f"https://api.telegram.org/bot{bot_token}/sendAudio"
                 caption = (text or override.get("caption") or "")[:1024]
                 data = {**base_data, "caption": caption}
@@ -287,7 +370,7 @@ async def send_telegram_post(
                     data["audio"] = media_path
                     response = await client.post(url, data=data)
 
-            # 4. Text only / sendMessage
+            # 4. Text only / sendMessage (also fallback if media is missing or invalid URL)
             else:
                 url = f"https://api.telegram.org/bot{bot_token}/sendMessage"
                 data = {**base_data, "text": text or "Untitled Post"}
@@ -327,6 +410,9 @@ async def send_telegram_post(
         err_desc = err_json.get("description", "Unknown Telegram error")
     except Exception:
         err_desc = response.text or "Unknown Telegram error"
+
+    if "invalid file http url specified" in err_desc.lower():
+        err_desc += " (invalid media URL or missing local file; must be a valid public HTTP(S) URL or uploaded file)"
 
     return {
         "success": False,
