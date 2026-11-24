@@ -31,6 +31,8 @@ class PlanCreate(PlanBase):
 
 
 class PlanUpdate(BaseModel):
+    campaign_id: Optional[PydanticObjectId] = None
+    plan_id: Optional[PydanticObjectId] = None
     order: Optional[int] = None
     idea: Optional[str] = None
     content_id: Optional[PydanticObjectId] = None
@@ -39,6 +41,16 @@ class PlanUpdate(BaseModel):
     formats: Optional[List[ContentType]] = None
     status: Optional[PlanStatus] = None
     error: Optional[str] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def sync_parent_id(cls, data: Any) -> Any:
+        if isinstance(data, dict):
+            pid = data.get("campaign_id") or data.get("plan_id")
+            if pid:
+                data["campaign_id"] = pid
+                data["plan_id"] = pid
+        return data
 
 
 class PlanResponse(PlanBase):
@@ -62,6 +74,13 @@ class PlanResponse(PlanBase):
         return data
 
     model_config = ConfigDict(populate_by_name=True)
+
+
+class PlanWithDetailsResponse(PlanResponse):
+    campaign_title: Optional[str] = None
+    campaign_color: Optional[str] = None
+    content_title: Optional[str] = None
+    content_status: Optional[str] = None
 
 
 # Backwards compatibility aliases for PlanItem

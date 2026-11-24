@@ -1,10 +1,11 @@
 from datetime import datetime, timezone
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import get_current_user
 from app.models.campaign import Campaign
-from app.models.enums import CampaignStatus
+from app.models.content import Content
+from app.models.enums import CampaignStatus, PlanStatus
 from app.models.plan import Plan
 from app.models.user import User
 from app.schemas.content import ContentResponse
@@ -15,10 +16,185 @@ from app.schemas.plan import (
     PlanGenerateRequest,
     PlanResponse,
     PlanUpdate,
+    PlanWithDetailsResponse,
 )
 
 router = APIRouter()
 
+
+async def enrich_plan_with_details(plan: Plan) -> PlanWithDetailsResponse:
+    camp_title = None
+    camp_color = None
+    cont_title = None
+    cont_status = None
+
+    parent_id = plan.campaign_id or plan.plan_id
+    if parent_id:
+        camp = await Campaign.find_one(
+            Campaign.id == parent_id,
+            Campaign.deleted_at == None,  # noqa: E711
+        )
+        if camp:
+            camp_title = camp.title or camp.idea
+            camp_color = camp.color_hash_code or "#6366f1"
+
+    if plan.content_id:
+        cont = await Content.find_one(
+            Content.id == plan.content_id,
+            Content.deleted_at == None,  # noqa: E711
+        )
+        if cont:
+            cont_title = cont.title
+            cont_status = cont.status.value if hasattr(cont.status, "value") else str(cont.status)
+
+    data = plan.model_dump(by_alias=True)
+    data["campaign_title"] = camp_title
+    data["campaign_color"] = camp_color
+    data["content_title"] = cont_title
+    data["content_status"] = cont_status
+    return PlanWithDetailsResponse(**data)
+
+
+async def enrich_plans_with_details(plans: List[Plan]) -> List[PlanWithDetailsResponse]:
+    if not plans:
+        return []
+
+    camp_ids = list({p.campaign_id or p.plan_id for p in plans if (p.campaign_id or p.plan_id)})
+    cont_ids = list({p.content_id for p in plans if p.content_id})
+
+    camps = (
+        await Campaign.find(
+            {"_id": {"$in": camp_ids}, "deleted_at": None}
+        ).to_list()
+        if camp_ids
+        else []
+    )
+    conts = (
+        await Content.find(
+            {"_id": {"$in": cont_ids}, "deleted_at": None}
+        ).to_list()
+        if cont_ids
+        else []
+    )
+
+    camp_map = {c.id: c for c in camps}
+    cont_map = {c.id: c for c in conts}
+
+    enriched = []
+    for plan in plans:
+        parent_id = plan.campaign_id or plan.plan_id
+        camp = camp_map.get(parent_id) if parent_id else None
+        cont = cont_map.get(plan.content_id) if plan.content_id else None
+
+        data = plan.model_dump(by_alias=True)
+        data["campaign_title"] = (camp.title or camp.idea) if camp else None
+        data["campaign_color"] = (camp.color_hash_code or "#6366f1") if camp else None
+        data["content_title"] = cont.title if cont else None
+        data["content_status"] = (
+            cont.status.value if hasattr(cont.status, "value") else str(cont.status)
+        ) if cont else None
+        enriched.append(PlanWithDetailsResponse(**data))
+    return enriched
+
+
+# -------------------------------------------------------------------------
+# Individual Plan Item Endpoints (Standalone or Associated with Campaign)
+# -------------------------------------------------------------------------
+
+@router.get(
+    "/items",
+    response_model=List[PlanWithDetailsResponse],
+    summary="List All Plan Items (Standalone & In-Campaign)",
+)
+async def list_plan_items(
+    campaign_id: Optional[PydanticObjectId] = Query(None, description="Filter by specific campaign ID"),
+    standalone: Optional[bool] = Query(None, description="If true, return plans with no campaign; if false, return plans with a campaign"),
+    status: Optional[PlanStatus] = Query(None, description="Filter by plan status"),
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieves individual plans for the current user, optionally filtered by campaign or standalone."""
+    query: Dict[str, Any] = {"user_id": current_user.id, "deleted_at": None}
+
+    if campaign_id:
+        query["$or"] = [{"campaign_id": campaign_id}, {"plan_id": campaign_id}]
+    elif standalone is True:
+        query["campaign_id"] = None
+        query["plan_id"] = None
+    elif standalone is False:
+        query["$or"] = [{"campaign_id": {"$ne": None}}, {"plan_id": {"$ne": None}}]
+
+    if status:
+        query["status"] = status
+
+    plans = await Plan.find(query).sort("-created_at").to_list()
+    return await enrich_plans_with_details(plans)
+
+
+@router.post(
+    "/items",
+    response_model=PlanWithDetailsResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a Plan Item (Standalone or Associated with Campaign)",
+)
+async def create_single_plan_item(
+    payload: PlanCreate,
+    current_user: User = Depends(get_current_user),
+):
+    """Creates a new plan item for the user. If campaign_id is supplied, associates it with that campaign."""
+    user_id = current_user.id
+    camp_id = payload.campaign_id or payload.plan_id
+
+    if camp_id:
+        campaign = await Campaign.find_one(
+            Campaign.id == camp_id,
+            Campaign.user_id == user_id,
+            Campaign.deleted_at == None,  # noqa: E711
+        )
+        if not campaign:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Associated campaign not found",
+            )
+
+    plan = Plan(
+        campaign_id=camp_id,
+        plan_id=camp_id,
+        user_id=user_id,
+        order=payload.order,
+        idea=payload.idea,
+        content_id=payload.content_id,
+        platform_ids=payload.platform_ids,
+        scheduled_at=payload.scheduled_at,
+        formats=payload.formats,
+        status=payload.status or PlanStatus.PENDING,
+    )
+    await plan.insert()
+    return await enrich_plan_with_details(plan)
+
+
+@router.get(
+    "/items/{plan_id}",
+    response_model=PlanWithDetailsResponse,
+    summary="Get Single Plan Item with Details",
+)
+async def get_single_plan_item(
+    plan_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user),
+):
+    """Retrieves a single plan item with enriched campaign and content details."""
+    plan = await Plan.find_one(
+        Plan.id == plan_id,
+        Plan.user_id == current_user.id,
+        Plan.deleted_at == None,  # noqa: E711
+    )
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan item not found")
+    return await enrich_plan_with_details(plan)
+
+
+# -------------------------------------------------------------------------
+# Legacy Campaign-Oriented Plan Endpoints (Backward Compatible)
+# -------------------------------------------------------------------------
 
 @router.post("", response_model=LegacyPlanResponse, status_code=status.HTTP_201_CREATED, summary="Create Manual Plan / Campaign")
 async def create_plan(payload: LegacyPlanCreate, current_user: User = Depends(get_current_user)):
@@ -107,13 +283,13 @@ async def get_plan(plan_id: PydanticObjectId, current_user: User = Depends(get_c
     return LegacyPlanResponse(**camp_dict)
 
 
-@router.patch("/{plan_id}", response_model=PlanResponse, summary="Update Single Plan Item Manually")
+@router.patch("/{plan_id}", response_model=PlanWithDetailsResponse, summary="Update Single Plan Item Manually")
 async def update_single_plan(
     plan_id: PydanticObjectId,
     payload: PlanUpdate,
     current_user: User = Depends(get_current_user),
 ):
-    """Manually updates an individual plan item."""
+    """Manually updates an individual plan item, including associating or dissociating campaigns."""
     plan = await Plan.find_one(
         Plan.id == plan_id,
         Plan.user_id == current_user.id,
@@ -123,12 +299,33 @@ async def update_single_plan(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan item not found")
 
     update_data = payload.model_dump(exclude_unset=True)
+
+    # Check if campaign_id / plan_id is being modified
+    if "campaign_id" in update_data or "plan_id" in update_data:
+        target_camp_id = update_data.get("campaign_id") or update_data.get("plan_id")
+        if target_camp_id:
+            camp = await Campaign.find_one(
+                Campaign.id == target_camp_id,
+                Campaign.user_id == current_user.id,
+                Campaign.deleted_at == None,  # noqa: E711
+            )
+            if not camp:
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target campaign not found")
+            plan.campaign_id = camp.id
+            plan.plan_id = camp.id
+        else:
+            # Explicit dissociation from campaign -> standalone
+            plan.campaign_id = None
+            plan.plan_id = None
+        update_data.pop("campaign_id", None)
+        update_data.pop("plan_id", None)
+
     for field, val in update_data.items():
         setattr(plan, field, val)
 
     plan.updated_at = datetime.now(timezone.utc)
     await plan.save()
-    return plan
+    return await enrich_plan_with_details(plan)
 
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete Single Plan Item")

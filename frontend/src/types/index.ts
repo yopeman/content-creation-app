@@ -83,6 +83,10 @@ export interface Plan {
   error?: string;
   created_at: string;
   updated_at: string;
+  campaign_title?: string;
+  campaign_color?: string;
+  content_title?: string;
+  content_status?: string;
 }
 
 export interface Campaign {
