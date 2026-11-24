@@ -126,3 +126,61 @@ async def test_dispatch_due_api_endpoint(auth_client: AsyncClient):
     assert dispatch_resp.status_code == 200
     assert "processed_count" in dispatch_resp.json()
     assert dispatch_resp.json()["status"] == "success"
+
+
+@pytest.mark.asyncio
+async def test_reschedule_cancel_and_delete_post(auth_client: AsyncClient):
+    # 1. Connect platform & create content
+    p_resp = await auth_client.post(
+        "/api/v1/platforms/tg",
+        json={"bot_token": "123456:ACTION-TEST-TOKEN", "chat_id": "@action_channel"},
+    )
+    p_id = p_resp.json()["_id"]
+
+    c_resp = await auth_client.post(
+        "/api/v1/contents",
+        json={
+            "title": "Actions Test Post Content",
+            "details": [{"type": "text", "text": "Testing actions"}],
+            "status": "ready",
+        },
+    )
+    c_id = c_resp.json()["_id"]
+
+    # 2. Create future scheduled post (3 hours out)
+    sched_time = (datetime.now(timezone.utc) + timedelta(hours=3)).isoformat()
+    post_resp = await auth_client.post(
+        "/api/v1/posts",
+        json={
+            "content_id": c_id,
+            "scheduled_at": sched_time,
+            "targets": [{"platform_id": p_id, "platform_code": "TG"}],
+        },
+    )
+    assert post_resp.status_code == 201
+    post_id = post_resp.json()["_id"]
+
+    # 3. Test Reschedule (change to 5 hours out)
+    new_sched_time = (datetime.now(timezone.utc) + timedelta(hours=5)).isoformat()
+    resched_resp = await auth_client.patch(
+        f"/api/v1/posts/{post_id}/reschedule",
+        json={"scheduled_at": new_sched_time},
+    )
+    assert resched_resp.status_code == 200
+    assert resched_resp.json()["status"] == PostStatus.SCHEDULED
+    assert resched_resp.json()["targets"][0]["status"] == PostTargetStatus.PENDING
+
+    # 4. Test Cancel Schedule (move back to draft)
+    cancel_resp = await auth_client.post(f"/api/v1/posts/{post_id}/cancel")
+    assert cancel_resp.status_code == 200
+    assert cancel_resp.json()["status"] == PostStatus.DRAFT
+    assert cancel_resp.json()["scheduled_at"] is None
+
+    # 5. Test Delete Post
+    del_resp = await auth_client.delete(f"/api/v1/posts/{post_id}")
+    assert del_resp.status_code == 204
+
+    # 6. Verify post no longer returned in list or get
+    get_resp = await auth_client.get(f"/api/v1/posts/{post_id}")
+    assert get_resp.status_code == 404
+

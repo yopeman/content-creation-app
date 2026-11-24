@@ -40,6 +40,10 @@ class PostCreate(BaseModel):
     targets: List[PostTargetCreate] = Field(default_factory=list)
 
 
+class PostReschedule(BaseModel):
+    scheduled_at: datetime
+
+
 class PostResponse(BaseModel):
     id: PydanticObjectId = Field(alias="_id")
     user_id: PydanticObjectId

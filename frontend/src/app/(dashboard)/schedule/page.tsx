@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Post, Content } from "@/types";
@@ -11,6 +13,12 @@ import {
   Loader2,
   RefreshCw,
   RotateCcw,
+  CalendarClock,
+  Trash2,
+  XCircle,
+  CheckCircle2,
+  Search,
+  FileText,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -27,8 +35,31 @@ function getErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+function toDateTimeLocalString(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 export default function SchedulePage() {
   const queryClient = useQueryClient();
+
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "scheduled" | "published" | "draft" | "failed">("all");
+
+  // Notifications
+  const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
+
+  // Reschedule Modal State
+  const [rescheduleModalPost, setRescheduleModalPost] = useState<Post | null>(null);
+  const [rescheduleDateTime, setRescheduleDateTime] = useState<string>("");
+
+  const showNotification = (type: "success" | "error", message: string) => {
+    setBanner({ type, message });
+    setTimeout(() => {
+      setBanner((prev) => (prev?.message === message ? null : prev));
+    }, 4000);
+  };
 
   const { data: posts = [], isLoading } = useQuery<Post[]>({
     queryKey: ["posts"],
@@ -46,19 +77,21 @@ export default function SchedulePage() {
     },
   });
 
+  // 1. Publish immediately
   const publishMutation = useMutation({
     mutationFn: async (postId: string) => {
       await apiClient.post(`/posts/${postId}/publish`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-      alert("Post successfully dispatched!");
+      showNotification("success", "Post successfully dispatched and published!");
     },
     onError: (err: unknown) => {
-      alert(`Error dispatching post: ${getErrorMessage(err, "Failed to dispatch post.")}`);
+      showNotification("error", getErrorMessage(err, "Failed to dispatch post."));
     },
   });
 
+  // 2. Retry failed dispatch
   const retryMutation = useMutation({
     mutationFn: async (postId: string) => {
       const res = await apiClient.post<Post>(`/posts/${postId}/publish`);
@@ -67,36 +100,149 @@ export default function SchedulePage() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       if (data.status === "failed") {
-        alert("Retry attempted, but dispatch failed. Please check platform connection and error details.");
+        showNotification("error", "Retry attempted, but dispatch failed. Please check platform connection and error details.");
       } else if (data.status === "partial") {
-        alert("Post partially dispatched. Some targets succeeded while others failed.");
+        showNotification("error", "Post partially dispatched. Some platform targets succeeded while others failed.");
       } else {
-        alert("Post retried and dispatched successfully!");
+        showNotification("success", "Post retried and dispatched successfully!");
       }
     },
     onError: (err: unknown) => {
-      alert(`Error retrying post: ${getErrorMessage(err, "Failed to retry post.")}`);
+      showNotification("error", getErrorMessage(err, "Failed to retry post."));
     },
   });
 
+  // 3. Reschedule post
+  const rescheduleMutation = useMutation({
+    mutationFn: async ({ postId, scheduledAt }: { postId: string; scheduledAt: string }) => {
+      const res = await apiClient.patch<Post>(`/posts/${postId}/reschedule`, {
+        scheduled_at: new Date(scheduledAt).toISOString(),
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      setRescheduleModalPost(null);
+      showNotification("success", "Post schedule updated successfully!");
+    },
+    onError: (err: unknown) => {
+      showNotification("error", getErrorMessage(err, "Failed to reschedule post."));
+    },
+  });
+
+  // 4. Cancel schedule (revert to draft)
+  const cancelScheduleMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      const res = await apiClient.post<Post>(`/posts/${postId}/cancel`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      showNotification("success", "Scheduled dispatch cancelled. Post moved back to drafts.");
+    },
+    onError: (err: unknown) => {
+      showNotification("error", getErrorMessage(err, "Failed to cancel scheduled post."));
+    },
+  });
+
+  // 5. Delete post
+  const deleteMutation = useMutation({
+    mutationFn: async (postId: string) => {
+      await apiClient.delete(`/posts/${postId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      showNotification("success", "Post removed from schedule.");
+    },
+    onError: (err: unknown) => {
+      showNotification("error", getErrorMessage(err, "Failed to delete post."));
+    },
+  });
+
+  // 6. Background worker trigger
   const workerMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiClient.post("/posts/dispatch-due");
+      const res = await apiClient.post<{ status: string; processed_count: number }>("/posts/dispatch-due");
       return res.data;
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
-      alert(`Background worker ran successfully: processed ${data.processed_count} due post(s).`);
+      showNotification("success", `Background worker ran successfully: processed ${data.processed_count} due post(s).`);
     },
     onError: (err: unknown) => {
-      alert(`Error running background worker: ${getErrorMessage(err, "Worker trigger failed.")}`);
+      showNotification("error", getErrorMessage(err, "Worker trigger failed."));
     },
   });
 
   const contentMap = new Map(contents.map((c) => [c._id, c]));
 
+  // Open Reschedule Modal helper
+  const openRescheduleModal = (post: Post) => {
+    let initialDate: Date;
+    if (post.scheduled_at) {
+      initialDate = new Date(post.scheduled_at);
+      if (initialDate.getTime() < Date.now()) {
+        initialDate = new Date(Date.now() + 3600 * 1000);
+      }
+    } else {
+      initialDate = new Date(Date.now() + 3600 * 1000);
+    }
+    setRescheduleDateTime(toDateTimeLocalString(initialDate));
+    setRescheduleModalPost(post);
+  };
+
+  // Quick preset dates for rescheduling
+  const setPresetTime = (hoursAhead: number) => {
+    const d = new Date(Date.now() + hoursAhead * 3600 * 1000);
+    setRescheduleDateTime(toDateTimeLocalString(d));
+  };
+
+  const setPresetTomorrowMorning = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(9, 0, 0, 0);
+    setRescheduleDateTime(toDateTimeLocalString(d));
+  };
+
+  const setPresetTomorrowEvening = () => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    d.setHours(18, 0, 0, 0);
+    setRescheduleDateTime(toDateTimeLocalString(d));
+  };
+
+  // Filter posts
+  const filteredPosts = posts.filter((post) => {
+    const linkedContent = contentMap.get(post.content_id);
+    const titleMatch = linkedContent?.title?.toLowerCase() || "";
+    const idMatch = post._id.toLowerCase();
+    const query = searchQuery.toLowerCase().trim();
+
+    if (query && !titleMatch.includes(query) && !idMatch.includes(query)) {
+      return false;
+    }
+
+    if (statusFilter === "all") return true;
+    if (statusFilter === "scheduled") return post.status === "scheduled";
+    if (statusFilter === "published") return post.status === "published";
+    if (statusFilter === "draft") return post.status === "draft";
+    if (statusFilter === "failed") {
+      return post.status === "failed" || post.status === "partial" || post.targets?.some((t) => t.status === "failed");
+    }
+    return true;
+  });
+
+  // Calculate status counts
+  const counts = {
+    all: posts.length,
+    scheduled: posts.filter((p) => p.status === "scheduled").length,
+    published: posts.filter((p) => p.status === "published").length,
+    draft: posts.filter((p) => p.status === "draft").length,
+    failed: posts.filter((p) => p.status === "failed" || p.status === "partial" || p.targets?.some((t) => t.status === "failed")).length,
+  };
+
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
@@ -105,7 +251,7 @@ export default function SchedulePage() {
             <span>Publishing & Dispatch Schedule</span>
           </h1>
           <p className="text-xs text-neutral-400 mt-1">
-            Monitor scheduled social media posts and live dispatch results across channels.
+            Monitor, reschedule, cancel, or immediately dispatch social media posts across your connected channels.
           </p>
         </div>
 
@@ -127,21 +273,145 @@ export default function SchedulePage() {
         </div>
       </div>
 
+      {/* Notification Banner */}
+      {banner && (
+        <div
+          className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-2 transition ${
+            banner.type === "success"
+              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+              : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+          }`}
+        >
+          <div className="flex items-center gap-2">
+            {banner.type === "success" ? (
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+            ) : (
+              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+            )}
+            <span>{banner.message}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBanner(null)}
+            className="text-neutral-400 hover:text-white text-xs px-1.5 py-0.5 rounded"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
+        {/* Status Filter Tabs */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
+          <button
+            type="button"
+            onClick={() => setStatusFilter("all")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              statusFilter === "all"
+                ? "bg-indigo-600 text-white shadow-sm"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            <span>All Posts</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              {counts.all}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("scheduled")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              statusFilter === "scheduled"
+                ? "bg-sky-600 text-white shadow-sm"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            <span>Scheduled</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              {counts.scheduled}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("published")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              statusFilter === "published"
+                ? "bg-emerald-600 text-white shadow-sm"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            <span>Published</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              {counts.published}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("draft")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              statusFilter === "draft"
+                ? "bg-neutral-700 text-white shadow-sm"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            <span>Drafts</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              {counts.draft}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setStatusFilter("failed")}
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              statusFilter === "failed"
+                ? "bg-rose-600 text-white shadow-sm"
+                : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+            }`}
+          >
+            <span>Failed / Partial</span>
+            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              {counts.failed}
+            </span>
+          </button>
+        </div>
+
+        {/* Search Input */}
+        <div className="relative w-full md:w-72">
+          <Search className="h-4 w-4 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-500 pointer-events-none" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search by title..."
+            className="w-full pl-9 pr-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 text-white placeholder-neutral-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+          />
+        </div>
+      </div>
+
       {isLoading ? (
         <div className="h-48 rounded-2xl bg-neutral-900 border border-neutral-800 animate-pulse flex items-center justify-center text-xs text-neutral-500">
           Loading post schedule...
         </div>
-      ) : posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-neutral-800 p-12 text-center bg-neutral-900/30">
           <Send className="h-10 w-10 text-neutral-600 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-white">No posts scheduled</h3>
+          <h3 className="text-base font-semibold text-white">
+            {posts.length === 0 ? "No posts scheduled" : "No posts matching filter"}
+          </h3>
           <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
-            Create or generate content in the Studio or Content Manager and schedule them for dispatch.
+            {posts.length === 0
+              ? "Create or generate content in the Content Manager and schedule them for dispatch."
+              : "Try switching filter tabs or clearing your search query."}
           </p>
         </div>
       ) : (
         <div className="space-y-3">
-          {posts.map((post) => {
+          {filteredPosts.map((post) => {
             const linkedContent = contentMap.get(post.content_id);
             const isDraft = post.status === "draft";
             const isPublished = post.status === "published";
@@ -155,15 +425,17 @@ export default function SchedulePage() {
 
             const isPublishingThis = publishMutation.isPending && publishMutation.variables === post._id;
             const isRetryingThis = retryMutation.isPending && retryMutation.variables === post._id;
-            const isActionPending = isPublishingThis || isRetryingThis;
+            const isCancellingThis = cancelScheduleMutation.isPending && cancelScheduleMutation.variables === post._id;
+            const isDeletingThis = deleteMutation.isPending && deleteMutation.variables === post._id;
+            const isActionPending = isPublishingThis || isRetryingThis || isCancellingThis || isDeletingThis;
 
             return (
               <div
                 key={post._id}
-                className="p-5 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="p-5 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:border-neutral-700/80"
               >
-                <div>
-                  <div className="flex items-center gap-2 mb-1.5">
+                <div className="space-y-1.5 flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span
                       className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${
                         isPublished
@@ -184,15 +456,24 @@ export default function SchedulePage() {
 
                     {post.scheduled_at && (
                       <span className="text-xs text-neutral-400 flex items-center gap-1 font-medium">
-                        <Clock className="h-3 w-3" />
-                        <span>{formatDate(post.scheduled_at)}</span>
+                        <Clock className="h-3 w-3 text-sky-400" />
+                        <span>Scheduled for: {formatDate(post.scheduled_at)}</span>
                       </span>
                     )}
                   </div>
 
-                  <h3 className="text-sm font-semibold text-white">
-                    {linkedContent?.title || `Content ${post.content_id}`}
-                  </h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-sm font-semibold text-white truncate max-w-lg">
+                      {linkedContent?.title || `Content ${post.content_id}`}
+                    </h3>
+                    <Link
+                      href={`/contents/${post.content_id}`}
+                      className="text-neutral-500 hover:text-indigo-400 transition"
+                      title="View / Edit Content"
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                    </Link>
+                  </div>
 
                   {/* Targets List */}
                   <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -232,6 +513,7 @@ export default function SchedulePage() {
                               target="_blank"
                               rel="noreferrer"
                               className="text-indigo-400 hover:text-indigo-300 inline-flex items-center ml-1"
+                              title="View on platform"
                             >
                               <ExternalLink className="h-3 w-3" />
                             </a>
@@ -257,13 +539,16 @@ export default function SchedulePage() {
                     ))}
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
-                  {isDraft && (
+                {/* Post Actions Toolbar */}
+                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                  {/* Publish Now (for Draft or Scheduled) */}
+                  {(isDraft || isScheduled) && (
                     <button
                       type="button"
                       onClick={() => publishMutation.mutate(post._id)}
                       disabled={isActionPending}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
+                      title="Publish now immediately without waiting"
                     >
                       {isPublishingThis ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -274,12 +559,49 @@ export default function SchedulePage() {
                     </button>
                   )}
 
+                  {/* Reschedule Button (for Scheduled, Draft, or Failed) */}
+                  {!isPublished && (
+                    <button
+                      type="button"
+                      onClick={() => openRescheduleModal(post)}
+                      disabled={isActionPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium border border-neutral-700 transition disabled:opacity-50"
+                      title="Change or set scheduled dispatch date and time"
+                    >
+                      <CalendarClock className="h-3.5 w-3.5 text-sky-400" />
+                      <span>{isScheduled ? "Reschedule" : "Set Schedule"}</span>
+                    </button>
+                  )}
+
+                  {/* Cancel Schedule (for Scheduled posts) */}
+                  {isScheduled && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (confirm("Cancel this scheduled dispatch? The post will be moved back to drafts.")) {
+                          cancelScheduleMutation.mutate(post._id);
+                        }
+                      }}
+                      disabled={isActionPending}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-medium transition disabled:opacity-50"
+                      title="Cancel schedule and revert to draft"
+                    >
+                      {isCancellingThis ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5" />
+                      )}
+                      <span>Cancel Schedule</span>
+                    </button>
+                  )}
+
+                  {/* Retry Button (for Failed or Partial) */}
                   {canRetry && !isDraft && (
                     <button
                       type="button"
                       onClick={() => retryMutation.mutate(post._id)}
                       disabled={isActionPending}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition disabled:opacity-50"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition disabled:opacity-50"
                       title="Retry dispatching failed post"
                     >
                       {isRetryingThis ? (
@@ -290,10 +612,146 @@ export default function SchedulePage() {
                       <span>Retry</span>
                     </button>
                   )}
+
+                  {/* Delete Button (for any post) */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (confirm("Are you sure you want to delete this post from the schedule?")) {
+                        deleteMutation.mutate(post._id);
+                      }
+                    }}
+                    disabled={isActionPending}
+                    className="p-1.5 rounded-xl text-neutral-400 hover:text-rose-400 hover:bg-rose-500/10 transition disabled:opacity-50"
+                    title="Delete post"
+                  >
+                    {isDeletingThis ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleModalPost && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <CalendarClock className="h-4 w-4 text-sky-400" />
+                <span>Reschedule Post</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setRescheduleModalPost(null)}
+                className="text-neutral-400 hover:text-white text-xs"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Target info */}
+            <div className="p-3 bg-neutral-800/40 border border-neutral-700/60 rounded-xl space-y-1">
+              <p className="text-xs font-medium text-white truncate">
+                {contentMap.get(rescheduleModalPost.content_id)?.title || "Untitled Content"}
+              </p>
+              <p className="text-[11px] text-neutral-400">
+                Current status:{" "}
+                <span className="text-sky-400 font-semibold capitalize">
+                  {rescheduleModalPost.status}
+                </span>
+                {rescheduleModalPost.scheduled_at && (
+                  <span> • Currently scheduled: {formatDate(rescheduleModalPost.scheduled_at)}</span>
+                )}
+              </p>
+            </div>
+
+            {/* DateTime Input */}
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-neutral-300">
+                Select New Dispatch Date & Time
+              </label>
+              <input
+                type="datetime-local"
+                value={rescheduleDateTime}
+                onChange={(e) => setRescheduleDateTime(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              />
+            </div>
+
+            {/* Quick Presets */}
+            <div className="space-y-1.5">
+              <span className="text-[10px] uppercase font-semibold text-neutral-400 tracking-wider">
+                Quick Presets
+              </span>
+              <div className="grid grid-cols-2 gap-1.5 text-xs">
+                <button
+                  type="button"
+                  onClick={() => setPresetTime(1)}
+                  className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 text-left transition"
+                >
+                  +1 Hour
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPresetTime(3)}
+                  className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 text-left transition"
+                >
+                  +3 Hours
+                </button>
+                <button
+                  type="button"
+                  onClick={setPresetTomorrowMorning}
+                  className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 text-left transition"
+                >
+                  Tomorrow 9:00 AM
+                </button>
+                <button
+                  type="button"
+                  onClick={setPresetTomorrowEvening}
+                  className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 text-left transition"
+                >
+                  Tomorrow 6:00 PM
+                </button>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-neutral-800">
+              <button
+                type="button"
+                onClick={() => setRescheduleModalPost(null)}
+                className="px-3.5 py-2 rounded-xl text-xs text-neutral-300 hover:bg-neutral-800 transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={!rescheduleDateTime || rescheduleMutation.isPending}
+                onClick={() => {
+                  if (rescheduleModalPost && rescheduleDateTime) {
+                    rescheduleMutation.mutate({
+                      postId: rescheduleModalPost._id,
+                      scheduledAt: rescheduleDateTime,
+                    });
+                  }
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-semibold shadow-md disabled:opacity-50 transition"
+              >
+                {rescheduleMutation.isPending ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <CalendarClock className="h-3.5 w-3.5" />
+                )}
+                <span>Confirm Reschedule</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

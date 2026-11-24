@@ -9,7 +9,7 @@ from app.models.platform import Platform
 from app.models.post import Post
 from app.models.post_target import PostTarget
 from app.models.user import User
-from app.schemas.post import PostCreate, PostResponse, PostTargetResponse
+from app.schemas.post import PostCreate, PostReschedule, PostResponse, PostTargetResponse
 from app.services.telegram import send_telegram_post
 
 router = APIRouter()
@@ -313,3 +313,110 @@ async def trigger_dispatch_due(current_user: User = Depends(get_current_user)):
     from app.services.scheduler import scheduled_post_worker
     processed = await scheduled_post_worker.process_due_posts()
     return {"status": "success", "processed_count": processed}
+
+
+@router.patch("/{post_id}/reschedule", response_model=PostResponse, summary="Reschedule Post")
+async def reschedule_post(
+    post_id: PydanticObjectId,
+    payload: PostReschedule,
+    current_user: User = Depends(get_current_user),
+):
+    """Reschedules an existing post and resets pending/failed targets for the new schedule."""
+    post = await Post.find_one(
+        Post.id == post_id,
+        Post.user_id == current_user.id,
+        Post.deleted_at == None,  # noqa: E711
+    )
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    now = datetime.now(timezone.utc)
+    post.scheduled_at = payload.scheduled_at
+    post.status = PostStatus.SCHEDULED
+    post.updated_at = now
+    await post.save()
+
+    targets = await PostTarget.find(
+        PostTarget.post_id == post.id,
+        PostTarget.deleted_at == None,  # noqa: E711
+    ).to_list()
+
+    for t in targets:
+        t.scheduled_at = payload.scheduled_at
+        if t.status != PostTargetStatus.PUBLISHED:
+            t.status = PostTargetStatus.PENDING
+            t.error = None
+        t.updated_at = now
+        await t.save()
+
+    post_dict = post.model_dump(by_alias=True)
+    post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
+    return PostResponse(**post_dict)
+
+
+@router.post("/{post_id}/cancel", response_model=PostResponse, summary="Cancel Scheduled Post")
+async def cancel_scheduled_post(
+    post_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user),
+):
+    """Cancels a scheduled post and sets it back to draft without deleting it."""
+    post = await Post.find_one(
+        Post.id == post_id,
+        Post.user_id == current_user.id,
+        Post.deleted_at == None,  # noqa: E711
+    )
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    now = datetime.now(timezone.utc)
+    post.status = PostStatus.DRAFT
+    post.scheduled_at = None
+    post.updated_at = now
+    await post.save()
+
+    targets = await PostTarget.find(
+        PostTarget.post_id == post.id,
+        PostTarget.deleted_at == None,  # noqa: E711
+    ).to_list()
+
+    for t in targets:
+        if t.status != PostTargetStatus.PUBLISHED:
+            t.status = PostTargetStatus.PENDING
+            t.scheduled_at = None
+        t.updated_at = now
+        await t.save()
+
+    post_dict = post.model_dump(by_alias=True)
+    post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
+    return PostResponse(**post_dict)
+
+
+@router.delete("/{post_id}", status_code=status.HTTP_204_NO_CONTENT, summary="Delete Post")
+async def delete_post(
+    post_id: PydanticObjectId,
+    current_user: User = Depends(get_current_user),
+):
+    """Soft-deletes a post and all of its associated targets."""
+    post = await Post.find_one(
+        Post.id == post_id,
+        Post.user_id == current_user.id,
+        Post.deleted_at == None,  # noqa: E711
+    )
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    now = datetime.now(timezone.utc)
+    post.deleted_at = now
+    post.updated_at = now
+    await post.save()
+
+    targets = await PostTarget.find(
+        PostTarget.post_id == post.id,
+        PostTarget.deleted_at == None,  # noqa: E711
+    ).to_list()
+
+    for t in targets:
+        t.deleted_at = now
+        t.updated_at = now
+        await t.save()
+
