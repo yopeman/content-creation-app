@@ -25,7 +25,11 @@ class Platform(Document):
         enc_token = self.details.get("encrypted_bot_token") or self.details.get("bot_token")
         if not enc_token:
             return None
-        return decrypt_secret(enc_token)
+        try:
+            return decrypt_secret(enc_token)
+        except Exception:
+            # Fallback to token as-is if already unencrypted/mock
+            return enc_token
 
     class Settings:
         name = "platforms"

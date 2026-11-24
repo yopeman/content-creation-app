@@ -29,6 +29,8 @@ export default function CampaignDetailPage() {
   const campaignId = params.id as string;
 
   const [dispatchPlan, setDispatchPlan] = useState<Plan | null>(null);
+  const [isScheduledMode, setIsScheduledMode] = useState<boolean>(false);
+  const [scheduledDateTime, setScheduledDateTime] = useState<string>("");
 
   const { data: campaign, isLoading } = useQuery<Campaign>({
     queryKey: ["campaign", campaignId],
@@ -74,27 +76,37 @@ export default function CampaignDetailPage() {
     mutationFn: async ({
       contentId,
       platformId,
+      isScheduled,
+      scheduledAt,
     }: {
       contentId: string;
       platformId: string;
+      isScheduled: boolean;
+      scheduledAt?: string;
     }) => {
       await apiClient.post("/posts", {
         content_id: contentId,
         campaign_id: campaignId,
-        status: "published",
+        status: isScheduled ? "scheduled" : "published",
+        scheduled_at: isScheduled ? scheduledAt : undefined,
         targets: [
           {
             platform_id: platformId,
             platform_code: "TG",
+            scheduled_at: isScheduled ? scheduledAt : undefined,
           },
         ],
       });
     },
-    onSuccess: () => {
+    onSuccess: (_, vars) => {
       queryClient.invalidateQueries({ queryKey: ["posts"] });
       queryClient.invalidateQueries({ queryKey: ["campaign", campaignId] });
       setDispatchPlan(null);
-      alert("Post dispatched successfully to Telegram!");
+      if (vars.isScheduled) {
+        alert("Post scheduled successfully! Background worker will publish it when due.");
+      } else {
+        alert("All content items dispatched successfully to Telegram!");
+      }
     },
   });
 
@@ -287,8 +299,60 @@ export default function CampaignDetailPage() {
             </h3>
 
             <p className="text-xs text-neutral-400">
-              Publishing content for: <span className="text-white font-medium">{dispatchPlan.idea}</span>
+              Publishing all content items for: <span className="text-white font-medium">{dispatchPlan.idea}</span>
             </p>
+
+            {/* Mode Toggle: Direct vs Scheduled */}
+            <div className="grid grid-cols-2 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setIsScheduledMode(false)}
+                className={`py-1.5 rounded-lg transition text-center ${
+                  !isScheduledMode
+                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Publish Directly
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsScheduledMode(true);
+                  if (!scheduledDateTime) {
+                    const d = new Date(Date.now() + 3600 * 1000);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    setScheduledDateTime(formatted);
+                  }
+                }}
+                className={`py-1.5 rounded-lg transition text-center ${
+                  isScheduledMode
+                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Schedule for Later
+              </button>
+            </div>
+
+            {/* Date Time Picker for Scheduling */}
+            {isScheduledMode && (
+              <div className="space-y-1.5 p-3 rounded-xl bg-neutral-800/40 border border-neutral-700/60">
+                <label className="block text-xs font-medium text-neutral-300">
+                  Select Scheduled Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledDateTime}
+                  onChange={(e) => setScheduledDateTime(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  The background worker will automatically dispatch this post when the scheduled time arrives.
+                </p>
+              </div>
+            )}
 
             <div className="space-y-2">
               <label className="block text-xs font-semibold text-neutral-300">
@@ -312,17 +376,22 @@ export default function CampaignDetailPage() {
                         dispatchMutation.mutate({
                           contentId: dispatchPlan.content_id,
                           platformId: p._id,
+                          isScheduled: isScheduledMode,
+                          scheduledAt: isScheduledMode && scheduledDateTime ? new Date(scheduledDateTime).toISOString() : undefined,
                         });
                       }
                     }}
-                    disabled={dispatchMutation.isPending}
-                    className="w-full p-3 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/80 text-left flex items-center justify-between transition"
+                    disabled={dispatchMutation.isPending || (isScheduledMode && !scheduledDateTime)}
+                    className="w-full p-3 rounded-xl bg-neutral-800/80 hover:bg-neutral-800 border border-neutral-700/80 text-left flex items-center justify-between transition disabled:opacity-50"
                   >
                     <div>
                       <p className="text-xs font-semibold text-white">{p.account_name}</p>
                       <p className="text-[10px] text-neutral-400">{p.platform_account_id} ({p.code})</p>
                     </div>
-                    <Send className="h-4 w-4 text-indigo-400" />
+                    <div className="flex items-center gap-1.5 text-indigo-400 text-xs font-medium">
+                      <span>{isScheduledMode ? "Schedule" : "Publish"}</span>
+                      <Send className="h-4 w-4" />
+                    </div>
                   </button>
                 ))
               )}

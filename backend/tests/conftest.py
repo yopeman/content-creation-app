@@ -76,6 +76,8 @@ def mock_telegram_api():
             media_type=None,
             scheduled_at=None,
             payload_override=None,
+            content_details=None,
+            **kwargs,
         ):
             if "invalid" in bot_token.lower():
                 return {

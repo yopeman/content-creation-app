@@ -54,6 +54,8 @@ export default function ContentAdjusterPage() {
   // Dispatch modal state
   const [showDispatchModal, setShowDispatchModal] = useState(false);
   const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
+  const [isScheduledMode, setIsScheduledMode] = useState<boolean>(false);
+  const [scheduledDateTime, setScheduledDateTime] = useState<string>("");
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
 
@@ -217,27 +219,42 @@ export default function ContentAdjusterPage() {
 
   // Dispatch post mutation
   const dispatchMutation = useMutation({
-    mutationFn: async ({ platformId }: { platformId: string }) => {
+    mutationFn: async ({
+      platformId,
+      isScheduled,
+      scheduledAt,
+    }: {
+      platformId: string;
+      isScheduled: boolean;
+      scheduledAt?: string;
+    }) => {
       const res = await apiClient.post("/posts", {
         content_id: contentId,
-        status: "published",
+        status: isScheduled ? "scheduled" : "published",
+        scheduled_at: isScheduled ? scheduledAt : undefined,
         targets: [
           {
             platform_id: platformId,
             platform_code: "TG",
+            scheduled_at: isScheduled ? scheduledAt : undefined,
           },
         ],
       });
       return res.data;
     },
-    onSuccess: () => {
-      setDispatchSuccess("Dispatched and published to Telegram successfully!");
+    onSuccess: (data) => {
+      if (data.status === "scheduled") {
+        setDispatchSuccess("Post scheduled! Background worker will automatically dispatch it at the chosen time.");
+      } else {
+        setDispatchSuccess("All content items dispatched and published to Telegram successfully!");
+      }
       setDispatchError(null);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
+      queryClient.invalidateQueries({ queryKey: ["contents"] });
       setTimeout(() => {
         setShowDispatchModal(false);
         setDispatchSuccess(null);
-      }, 1800);
+      }, 2000);
     },
     onError: (err: any) => {
       setDispatchError(err.response?.data?.detail || "Dispatch failed. Check platform credentials.");
@@ -935,12 +952,79 @@ export default function ContentAdjusterPage() {
               </button>
             </div>
 
-            <div className="p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/60">
+            {/* Content summary and items list */}
+            <div className="p-3.5 rounded-xl bg-neutral-800/50 border border-neutral-700/60 space-y-2">
               <p className="text-xs font-semibold text-white truncate">{title}</p>
-              <p className="text-[11px] text-neutral-400 mt-0.5">
-                Ready to broadcast {blocks.length} multimodal block(s)
+              <div className="flex flex-wrap gap-1.5 pt-1">
+                {blocks.map((d, i) => (
+                  <span
+                    key={i}
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-700/80"
+                  >
+                    {d.type === "text" && <FileText className="h-3 w-3 text-indigo-400" />}
+                    {d.type === "image" && <ImageIcon className="h-3 w-3 text-pink-400" />}
+                    {d.type === "audio" && <Mic className="h-3 w-3 text-emerald-400" />}
+                    {d.type === "video" && <Video className="h-3 w-3 text-cyan-400" />}
+                    <span className="capitalize">{d.type}</span>
+                  </span>
+                ))}
+              </div>
+              <p className="text-[10px] text-neutral-400">
+                All {blocks.length} content item(s) will be published in order to the destination.
               </p>
             </div>
+
+            {/* Mode Toggle: Direct vs Scheduled */}
+            <div className="grid grid-cols-2 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60 text-xs font-medium">
+              <button
+                type="button"
+                onClick={() => setIsScheduledMode(false)}
+                className={`py-1.5 rounded-lg transition text-center ${
+                  !isScheduledMode
+                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Publish Directly
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsScheduledMode(true);
+                  if (!scheduledDateTime) {
+                    const d = new Date(Date.now() + 3600 * 1000);
+                    const pad = (n: number) => String(n).padStart(2, "0");
+                    const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+                    setScheduledDateTime(formatted);
+                  }
+                }}
+                className={`py-1.5 rounded-lg transition text-center ${
+                  isScheduledMode
+                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
+                    : "text-neutral-400 hover:text-white"
+                }`}
+              >
+                Schedule for Later
+              </button>
+            </div>
+
+            {/* Date Time Picker for Scheduling */}
+            {isScheduledMode && (
+              <div className="space-y-1.5 p-3 rounded-xl bg-neutral-800/40 border border-neutral-700/60">
+                <label className="block text-xs font-medium text-neutral-300">
+                  Select Scheduled Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={scheduledDateTime}
+                  onChange={(e) => setScheduledDateTime(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+                <p className="text-[10px] text-neutral-400 mt-1">
+                  The background worker will automatically dispatch this post when the scheduled time arrives.
+                </p>
+              </div>
+            )}
 
             {dispatchError && (
               <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
@@ -992,12 +1076,14 @@ export default function ContentAdjusterPage() {
               </button>
               <button
                 type="button"
-                disabled={platforms.length === 0 || dispatchMutation.isPending}
+                disabled={platforms.length === 0 || dispatchMutation.isPending || (isScheduledMode && !scheduledDateTime)}
                 onClick={() => {
                   const platId = selectedPlatformId || platforms[0]?._id;
                   if (platId) {
                     dispatchMutation.mutate({
                       platformId: platId,
+                      isScheduled: isScheduledMode,
+                      scheduledAt: isScheduledMode && scheduledDateTime ? new Date(scheduledDateTime).toISOString() : undefined,
                     });
                   }
                 }}
@@ -1008,7 +1094,15 @@ export default function ContentAdjusterPage() {
                 ) : (
                   <Send className="h-3.5 w-3.5" />
                 )}
-                <span>{dispatchMutation.isPending ? "Publishing..." : "Publish Now"}</span>
+                <span>
+                  {dispatchMutation.isPending
+                    ? isScheduledMode
+                      ? "Scheduling..."
+                      : "Publishing..."
+                    : isScheduledMode
+                    ? "Schedule Post"
+                    : "Publish All Items Now"}
+                </span>
               </button>
             </div>
           </div>

@@ -5,6 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from app.api.router import api_router
 from app.core.config import settings
 from app.db.session import close_db, init_db
+from app.services.scheduler import scheduled_post_worker
 
 
 @asynccontextmanager
@@ -13,8 +14,11 @@ async def lifespan(app: FastAPI):
     await init_db()
     # Ensure local upload directories exist
     settings.upload_path.mkdir(parents=True, exist_ok=True)
+    # Start background worker for scheduled posts
+    scheduled_post_worker.start()
     yield
-    # Shutdown: Cleanly disconnect from MongoDB
+    # Shutdown: Stop worker and cleanly disconnect from MongoDB
+    await scheduled_post_worker.stop()
     await close_db()
 
 

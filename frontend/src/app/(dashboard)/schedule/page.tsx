@@ -45,19 +45,49 @@ export default function SchedulePage() {
     },
   });
 
+  const workerMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiClient.post("/posts/dispatch-due");
+      return res.data;
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["posts"] });
+      alert(`Background worker ran successfully: processed ${data.processed_count} due post(s).`);
+    },
+  });
+
   const contentMap = new Map(contents.map((c) => [c._id, c]));
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <Send className="h-6 w-6 text-indigo-400" />
-          <span>Publishing & Dispatch Schedule</span>
-        </h1>
-        <p className="text-xs text-neutral-400 mt-1">
-          Monitor scheduled social media posts and live dispatch results across channels.
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+            <Send className="h-6 w-6 text-indigo-400" />
+            <span>Publishing & Dispatch Schedule</span>
+          </h1>
+          <p className="text-xs text-neutral-400 mt-1">
+            Monitor scheduled social media posts and live dispatch results across channels.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            disabled={workerMutation.isPending}
+            onClick={() => workerMutation.mutate()}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium border border-neutral-700 transition"
+            title="Check and process any scheduled posts that are due now"
+          >
+            {workerMutation.isPending ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-indigo-400" />
+            ) : (
+              <RefreshCw className="h-3.5 w-3.5 text-indigo-400" />
+            )}
+            <span>Process Due Posts Now</span>
+          </button>
+        </div>
       </div>
 
       {isLoading ? (

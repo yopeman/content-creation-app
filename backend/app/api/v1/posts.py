@@ -46,7 +46,15 @@ async def dispatch_post_target(
         await target.save()
         return target
 
-    bot_token = platform.get_decrypted_bot_token()
+    try:
+        bot_token = platform.get_decrypted_bot_token()
+    except Exception as exc:
+        target.status = PostTargetStatus.FAILED
+        target.error = f"Failed to decrypt bot credentials: {str(exc)}"
+        target.updated_at = datetime.now(timezone.utc)
+        await target.save()
+        return target
+
     chat_id = platform.details.get("chat_id") or platform.platform_account_id
     if not bot_token or not chat_id:
         target.status = PostTargetStatus.FAILED
@@ -93,6 +101,7 @@ async def dispatch_post_target(
         media_type=media_type,
         scheduled_at=scheduled_at,
         payload_override=override,
+        content_details=content.details,
     )
 
     if result.get("success"):
@@ -176,8 +185,18 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
         await target.insert()
         created_targets.append(target)
 
-    # 3. If post status is not DRAFT, dispatch immediately to the target platform (TG)
-    if initial_status != PostStatus.DRAFT and created_targets:
+    # 3. If post has a future scheduled time, hold it for the background worker; otherwise dispatch immediately
+    now = datetime.now(timezone.utc)
+    has_future_schedule = (
+        (payload.scheduled_at is not None and payload.scheduled_at > now)
+        or any(t.scheduled_at is not None and t.scheduled_at > now for t in payload.targets)
+    )
+
+    if has_future_schedule:
+        post.status = PostStatus.SCHEDULED
+        post.updated_at = now
+        await post.save()
+    elif initial_status != PostStatus.DRAFT and created_targets:
         dispatched_targets = []
         for t in created_targets:
             updated_t = await dispatch_post_target(
@@ -301,3 +320,11 @@ async def get_post(post_id: PydanticObjectId, current_user: User = Depends(get_c
     post_dict = post.model_dump(by_alias=True)
     post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
     return PostResponse(**post_dict)
+
+
+@router.post("/dispatch-due", summary="Process Due Scheduled Posts (Background Worker Trigger)")
+async def trigger_dispatch_due(current_user: User = Depends(get_current_user)):
+    """Manually triggers an immediate processing cycle for all due scheduled posts."""
+    from app.services.scheduler import scheduled_post_worker
+    processed = await scheduled_post_worker.process_due_posts()
+    return {"status": "success", "processed_count": processed}

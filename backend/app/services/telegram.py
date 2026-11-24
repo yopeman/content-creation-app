@@ -1,7 +1,7 @@
 from datetime import datetime
 import mimetypes
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 from fastapi import HTTPException, status
 import httpx
 from app.core.config import settings
@@ -86,14 +86,14 @@ async def send_telegram_post(
     media_type: Optional[ContentType] = None,
     scheduled_at: Optional[datetime] = None,
     payload_override: Optional[Dict[str, Any]] = None,
+    content_details: Optional[List[Any]] = None,
 ) -> Dict[str, Any]:
-    """Publishes or schedules a post directly to Telegram via Bot API.
+    """Publishes a post directly to Telegram via Bot API.
 
-    Supports text messages, photos, videos, and audio.
-    Delegates scheduling to the target social media platform using schedule_date.
+    Supports multimodal publishing: when content_details is provided, ALL attached
+    text, images, audio narration, and video clips are sequentially published to the channel.
     """
     override = payload_override or {}
-    schedule_timestamp = int(scheduled_at.timestamp()) if scheduled_at else None
 
     # Base params
     base_data: Dict[str, Any] = {"chat_id": chat_id}
@@ -103,13 +103,145 @@ async def send_telegram_post(
         base_data["protect_content"] = override["protect_content"]
     if override.get("parse_mode"):
         base_data["parse_mode"] = override["parse_mode"]
-    if schedule_timestamp:
-        base_data["schedule_date"] = schedule_timestamp
 
-    local_file = _resolve_local_media_path(media_path) if media_path else None
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        # Helper to execute a single Telegram call
+        async def _call_tg(endpoint: str, data: dict, files: dict = None, as_json: bool = False):
+            url = f"https://api.telegram.org/bot{bot_token}/{endpoint}"
+            try:
+                if files:
+                    return await client.post(url, data=data, files=files)
+                elif as_json:
+                    return await client.post(url, json=data)
+                else:
+                    return await client.post(url, data=data)
+            except httpx.RequestError as exc:
+                return exc
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
+        # -------------------------------------------------------------
+        # BRANCH A: MULTI-ITEM DISPATCH (content_details provided)
+        # -------------------------------------------------------------
+        if content_details is not None and len(content_details) > 0:
+            sorted_details = sorted(content_details, key=lambda d: getattr(d, "order", 0))
+
+            text_items = [d for d in sorted_details if getattr(d, "type", None) == ContentType.TEXT]
+            image_items = [d for d in sorted_details if getattr(d, "type", None) == ContentType.IMAGE and getattr(d, "path", None)]
+            video_items = [d for d in sorted_details if getattr(d, "type", None) == ContentType.VIDEO and getattr(d, "path", None)]
+            audio_items = [d for d in sorted_details if getattr(d, "type", None) == ContentType.AUDIO and getattr(d, "path", None)]
+
+            # Combine text copy
+            combined_text = text or override.get("text") or override.get("caption")
+            if not combined_text:
+                texts = [getattr(d, "text", "") for d in text_items if getattr(d, "text", "")]
+                combined_text = "\n\n".join(texts) if texts else "New Content Update"
+
+            sent_message_ids: List[str] = []
+            external_url: Optional[str] = None
+            last_error: Optional[str] = None
+
+            def _parse_resp(resp):
+                nonlocal external_url, last_error
+                if isinstance(resp, Exception):
+                    last_error = f"Network error: {str(resp)}"
+                    return None
+                if resp.status_code == 200:
+                    body = resp.json()
+                    if body.get("ok"):
+                        res_obj = body.get("result", {})
+                        m_id = str(res_obj.get("message_id"))
+                        sent_message_ids.append(m_id)
+                        if not external_url:
+                            chat_obj = res_obj.get("chat", {})
+                            username = chat_obj.get("username")
+                            if username:
+                                external_url = f"https://t.me/{username}/{m_id}"
+                            else:
+                                raw_cid = str(chat_obj.get("id", chat_id))
+                                if raw_cid.startswith("-100"):
+                                    external_url = f"https://t.me/c/{raw_cid[4:]}/{m_id}"
+                        return m_id
+                try:
+                    err_desc = resp.json().get("description", resp.text)
+                except Exception:
+                    err_desc = resp.text
+                last_error = f"Telegram error ({resp.status_code}): {err_desc}"
+                return None
+
+            # 1. Post visual items (images & videos)
+            visual_items = []
+            for img in image_items:
+                visual_items.append((ContentType.IMAGE, img))
+            for vid in video_items:
+                visual_items.append((ContentType.VIDEO, vid))
+
+            caption_used = False
+            for idx, (v_type, item) in enumerate(visual_items):
+                p_file = _resolve_local_media_path(item.path)
+                caption = ""
+                if not caption_used:
+                    caption = combined_text[:1024]
+                    caption_used = True
+                else:
+                    caption = (getattr(item, "text", "") or getattr(item, "script", "") or "")[:1024]
+
+                if v_type == ContentType.IMAGE:
+                    data = {**base_data, "caption": caption}
+                    if p_file:
+                        mime = mimetypes.guess_type(p_file.name)[0] or "image/png"
+                        with open(p_file, "rb") as f:
+                            r = await _call_tg("sendPhoto", data=data, files={"photo": (p_file.name, f.read(), mime)})
+                    else:
+                        data["photo"] = item.path
+                        r = await _call_tg("sendPhoto", data=data)
+                    _parse_resp(r)
+
+                elif v_type == ContentType.VIDEO:
+                    data = {**base_data, "caption": caption}
+                    if p_file:
+                        mime = mimetypes.guess_type(p_file.name)[0] or "video/mp4"
+                        with open(p_file, "rb") as f:
+                            r = await _call_tg("sendVideo", data=data, files={"video": (p_file.name, f.read(), mime)})
+                    else:
+                        data["video"] = item.path
+                        r = await _call_tg("sendVideo", data=data)
+                    _parse_resp(r)
+
+            # 2. If no visual media was posted, send text post
+            if not caption_used and combined_text:
+                r = await _call_tg("sendMessage", data={**base_data, "text": combined_text}, as_json=True)
+                _parse_resp(r)
+
+            # 3. Post audio narration items
+            for a_item in audio_items:
+                p_file = _resolve_local_media_path(a_item.path)
+                a_caption = (getattr(a_item, "script", "") or getattr(a_item, "text", "") or "")[:1024]
+                data = {**base_data, "caption": a_caption}
+                if p_file:
+                    mime = mimetypes.guess_type(p_file.name)[0] or "audio/mpeg"
+                    with open(p_file, "rb") as f:
+                        r = await _call_tg("sendAudio", data=data, files={"audio": (p_file.name, f.read(), mime)})
+                else:
+                    data["audio"] = a_item.path
+                    r = await _call_tg("sendAudio", data=data)
+                _parse_resp(r)
+
+            if sent_message_ids:
+                return {
+                    "success": True,
+                    "message_id": sent_message_ids[0],
+                    "message_ids": sent_message_ids,
+                    "external_url": external_url,
+                }
+            return {
+                "success": False,
+                "error": last_error or "Failed to send content items to Telegram.",
+            }
+
+        # -------------------------------------------------------------
+        # BRANCH B: SINGLE-ITEM FALLBACK (for backward compatibility)
+        # -------------------------------------------------------------
         try:
+            local_file = _resolve_local_media_path(media_path) if media_path else None
             # 1. Image upload / sendPhoto
             if media_type == ContentType.IMAGE and (local_file or media_path):
                 url = f"https://api.telegram.org/bot{bot_token}/sendPhoto"
