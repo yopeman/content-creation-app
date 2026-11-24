@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Eye,
   Save,
+  Link2,
 } from "lucide-react";
 import { formatBytes } from "@/lib/utils";
 
@@ -28,6 +29,7 @@ interface EditableBlock extends ContentDetail {
   id: string; // local temporary UI identifier
   isUploading?: boolean;
   uploadError?: string | null;
+  sourceType?: "upload" | "url";
 }
 
 export default function NewContentPage() {
@@ -140,6 +142,43 @@ export default function NewContentPage() {
         uploadError:
           errorObj.response?.data?.detail || "Media upload failed. Check format and size.",
       });
+    }
+  };
+
+  // Handle direct URL input for media blocks
+  const handleUrlInput = (blockId: string, url: string) => {
+    const trimmed = url.trim();
+    let cleanFileName = "";
+    if (trimmed) {
+      try {
+        const u = new URL(trimmed);
+        const segments = u.pathname.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          cleanFileName = decodeURIComponent(segments[segments.length - 1]);
+        }
+      } catch {
+        const segments = trimmed.split("/").filter(Boolean);
+        if (segments.length > 0) {
+          cleanFileName = decodeURIComponent(segments[segments.length - 1]);
+        }
+      }
+      if (cleanFileName.includes("?")) {
+        cleanFileName = cleanFileName.split("?")[0];
+      }
+    }
+
+    updateBlock(blockId, {
+      path: trimmed,
+      text: cleanFileName,
+      script: cleanFileName,
+      uploadError: null,
+    });
+
+    if (cleanFileName) {
+      const derivedTitle = cleanFileName.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " ").trim();
+      if (derivedTitle) {
+        setTitle((prev) => (prev.trim() ? prev : derivedTitle.charAt(0).toUpperCase() + derivedTitle.slice(1)));
+      }
     }
   };
 
@@ -428,12 +467,218 @@ export default function NewContentPage() {
 
                   {block.type === "image" && (
                     <div className="space-y-4">
-                      {/* Image Upload Area */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                          Image File (PNG, JPG, WEBP, GIF - Max 20MB)
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Image Source
                         </label>
-                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
+                            </div>
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/images/sample.jpg"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                            />
+                          </div>
+
+                          {block.path && (
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
+                              <div className="w-full sm:w-48 h-32 relative rounded-lg overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                                <img
+                                  src={getMediaUrl(block.path)}
+                                  alt="Image URL preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                              <div className="text-[11px] text-neutral-400 space-y-1">
+                                <p className="text-pink-400 font-medium flex items-center gap-1.5">
+                                  <Link2 className="h-3.5 w-3.5" /> Direct URL Linked
+                                </p>
+                                <p className="text-white font-medium break-all">{block.text || block.path}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <div className="flex flex-col sm:flex-row items-center gap-4">
+                            <label
+                              onDragOver={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onDrop={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                const f = e.dataTransfer.files?.[0];
+                                if (f && !block.isUploading) handleUpload(block.id, f, "image");
+                              }}
+                              className="flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-pink-500/50 rounded-2xl bg-neutral-850/50 hover:bg-pink-500/5 cursor-pointer transition"
+                            >
+                              {block.isUploading ? (
+                                <div className="flex items-center gap-2 text-xs text-pink-400">
+                                  <Loader2 className="h-5 w-5 animate-spin" />
+                                  <span>Uploading image & verifying magic bytes...</span>
+                                </div>
+                              ) : (
+                                <div className="flex flex-col items-center text-center">
+                                  <UploadCloud className="h-6 w-6 text-pink-400 mb-1.5" />
+                                  <span className="text-xs font-medium text-neutral-200">
+                                    Click to upload image or drag & drop
+                                  </span>
+                                  <span className="text-[10px] text-neutral-400 mt-0.5">
+                                    PNG, JPG, WEBP, GIF (Max 20MB) • Auto-checks binary signature
+                                  </span>
+                                </div>
+                              )}
+                              <input
+                                type="file"
+                                accept="image/*"
+                                disabled={block.isUploading}
+                                onChange={(e) => {
+                                  const f = e.target.files?.[0];
+                                  if (f) handleUpload(block.id, f, "image");
+                                  e.target.value = "";
+                                }}
+                                className="hidden"
+                              />
+                            </label>
+
+                            {/* Image Preview if uploaded */}
+                            {block.path && (
+                              <div className="w-full sm:w-48 h-32 relative rounded-xl overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                                <img
+                                  src={getMediaUrl(block.path)}
+                                  alt="Uploaded preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                          </div>
+
+                          {block.uploadError && (
+                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span>{block.uploadError}</span>
+                            </p>
+                          )}
+
+                          {block.path && (
+                            <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2">
+                              <span className="text-emerald-400 font-medium">Uploaded:</span>
+                              <span className="truncate max-w-xs text-white font-medium">{block.text || block.path.split("/").pop()}</span>
+                              {block.file_size_bytes && (
+                                <span>({formatBytes(block.file_size_bytes)})</span>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {block.type === "audio" && (
+                    <div className="space-y-4">
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Audio Source
+                        </label>
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
+
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
+                            </div>
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/audio/podcast.mp3"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                            />
+                          </div>
+
+                          {block.path && (
+                            <div className="p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-emerald-400 font-medium">Linked Track:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                              </div>
+                              <audio
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full h-8"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
                           <label
                             onDragOver={(e) => {
                               e.preventDefault();
@@ -443,220 +688,202 @@ export default function NewContentPage() {
                               e.preventDefault();
                               e.stopPropagation();
                               const f = e.dataTransfer.files?.[0];
-                              if (f && !block.isUploading) handleUpload(block.id, f, "image");
+                              if (f && !block.isUploading) handleUpload(block.id, f, "audio");
                             }}
-                            className="flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-pink-500/50 rounded-2xl bg-neutral-850/50 hover:bg-pink-500/5 cursor-pointer transition"
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-2xl bg-neutral-850/50 hover:bg-emerald-500/5 cursor-pointer transition"
                           >
                             {block.isUploading ? (
-                              <div className="flex items-center gap-2 text-xs text-pink-400">
+                              <div className="flex items-center gap-2 text-xs text-emerald-400">
                                 <Loader2 className="h-5 w-5 animate-spin" />
-                                <span>Uploading image & verifying magic bytes...</span>
+                                <span>Uploading audio track...</span>
                               </div>
                             ) : (
                               <div className="flex flex-col items-center text-center">
-                                <UploadCloud className="h-6 w-6 text-pink-400 mb-1.5" />
+                                <UploadCloud className="h-6 w-6 text-emerald-400 mb-1.5" />
                                 <span className="text-xs font-medium text-neutral-200">
-                                  Click to upload image or drag & drop
+                                  Click to upload voiceover or podcast audio
                                 </span>
                                 <span className="text-[10px] text-neutral-400 mt-0.5">
-                                  Auto-checks binary magic bytes signature
+                                  MP3, WAV, OGG, M4A (Max 50MB) • Supports direct audio playback
                                 </span>
                               </div>
                             )}
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="audio/*"
                               disabled={block.isUploading}
                               onChange={(e) => {
                                 const f = e.target.files?.[0];
-                                if (f) handleUpload(block.id, f, "image");
+                                if (f) handleUpload(block.id, f, "audio");
                                 e.target.value = "";
                               }}
                               className="hidden"
                             />
                           </label>
 
-                          {/* Image Preview if uploaded */}
+                          {block.uploadError && (
+                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span>{block.uploadError}</span>
+                            </p>
+                          )}
+
                           {block.path && (
-                            <div className="w-full sm:w-48 h-32 relative rounded-xl overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
-                              <img
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-emerald-400 font-medium">Uploaded Track:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                                {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                              </div>
+                              <audio
                                 src={getMediaUrl(block.path)}
-                                alt="Uploaded preview"
-                                className="w-full h-full object-cover"
+                                controls
+                                className="w-full h-8"
                               />
                             </div>
                           )}
                         </div>
-
-                        {block.uploadError && (
-                          <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <span>{block.uploadError}</span>
-                          </p>
-                        )}
-
-                        {block.path && (
-                          <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2">
-                            <span className="text-emerald-400 font-medium">Uploaded:</span>
-                            <span className="truncate max-w-xs text-white font-medium">{block.text || block.path.split("/").pop()}</span>
-                            {block.file_size_bytes && (
-                              <span>({formatBytes(block.file_size_bytes)})</span>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {block.type === "audio" && (
-                    <div className="space-y-4">
-                      {/* Audio Upload Area */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                          Audio Narration File (MP3, WAV, OGG, M4A - Max 50MB)
-                        </label>
-                        <label
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const f = e.dataTransfer.files?.[0];
-                            if (f && !block.isUploading) handleUpload(block.id, f, "audio");
-                          }}
-                          className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-2xl bg-neutral-850/50 hover:bg-emerald-500/5 cursor-pointer transition"
-                        >
-                          {block.isUploading ? (
-                            <div className="flex items-center gap-2 text-xs text-emerald-400">
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              <span>Uploading audio track...</span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center text-center">
-                              <UploadCloud className="h-6 w-6 text-emerald-400 mb-1.5" />
-                              <span className="text-xs font-medium text-neutral-200">
-                                Click to upload voiceover or podcast audio
-                              </span>
-                              <span className="text-[10px] text-neutral-400 mt-0.5">
-                                Supports direct audio playback
-                              </span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="audio/*"
-                            disabled={block.isUploading}
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleUpload(block.id, f, "audio");
-                              e.target.value = "";
-                            }}
-                            className="hidden"
-                          />
-                        </label>
-
-                        {block.uploadError && (
-                          <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <span>{block.uploadError}</span>
-                          </p>
-                        )}
-
-                        {block.path && (
-                          <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                            <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                              <div className="flex items-center gap-2">
-                                <span className="text-emerald-400 font-medium">Uploaded Track:</span>
-                                <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
-                              </div>
-                              {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
-                            </div>
-                            <audio
-                              src={getMediaUrl(block.path)}
-                              controls
-                              className="w-full h-8"
-                            />
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   )}
 
                   {block.type === "video" && (
                     <div className="space-y-4">
-                      {/* Video Upload Area */}
-                      <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1.5">
-                          Video Reel / Clip (MP4, MOV, WebM - Max 200MB)
+                      {/* Source Selection Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <label className="block text-xs font-medium text-neutral-300">
+                          Video Source
                         </label>
-                        <label
-                          onDragOver={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                          }}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            const f = e.dataTransfer.files?.[0];
-                            if (f && !block.isUploading) handleUpload(block.id, f, "video");
-                          }}
-                          className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-cyan-500/50 rounded-2xl bg-neutral-850/50 hover:bg-cyan-500/5 cursor-pointer transition"
-                        >
-                          {block.isUploading ? (
-                            <div className="flex items-center gap-2 text-xs text-cyan-400">
-                              <Loader2 className="h-5 w-5 animate-spin" />
-                              <span>Uploading video reel...</span>
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center text-center">
-                              <UploadCloud className="h-6 w-6 text-cyan-400 mb-1.5" />
-                              <span className="text-xs font-medium text-neutral-200">
-                                Click to upload video reel or short
-                              </span>
-                              <span className="text-[10px] text-neutral-400 mt-0.5">
-                                Streamable MP4 / MOV container
-                              </span>
-                            </div>
-                          )}
-                          <input
-                            type="file"
-                            accept="video/*"
-                            disabled={block.isUploading}
-                            onChange={(e) => {
-                              const f = e.target.files?.[0];
-                              if (f) handleUpload(block.id, f, "video");
-                              e.target.value = "";
-                            }}
-                            className="hidden"
-                          />
-                        </label>
+                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "upload" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType !== "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <UploadCloud className="h-3.5 w-3.5" />
+                            <span>Upload File</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateBlock(block.id, { sourceType: "url" })}
+                            className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
+                              block.sourceType === "url"
+                                ? "bg-neutral-800 text-white shadow-sm"
+                                : "text-neutral-400 hover:text-neutral-200"
+                            }`}
+                          >
+                            <Link2 className="h-3.5 w-3.5" />
+                            <span>Web URL</span>
+                          </button>
+                        </div>
+                      </div>
 
-                        {block.uploadError && (
-                          <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
-                            <AlertCircle className="h-3.5 w-3.5" />
-                            <span>{block.uploadError}</span>
-                          </p>
-                        )}
-
-                        {block.path && (
-                          <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                            <div className="flex items-center justify-between text-[11px] text-neutral-300">
-                              <div className="flex items-center gap-2">
-                                <span className="text-cyan-400 font-medium">Uploaded Video:</span>
-                                <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
-                              </div>
-                              {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                      {block.sourceType === "url" ? (
+                        <div className="space-y-3">
+                          <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                              <Link2 className="h-4 w-4" />
                             </div>
-                            <video
-                              src={getMediaUrl(block.path)}
-                              controls
-                              className="w-full rounded-lg aspect-video max-h-60 bg-black"
+                            <input
+                              type="url"
+                              value={block.path || ""}
+                              onChange={(e) => handleUrlInput(block.id, e.target.value)}
+                              placeholder="https://example.com/videos/promo.mp4"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
                             />
                           </div>
-                        )}
-                      </div>
+
+                          {block.path && (
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400 font-medium">Linked Video:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                              </div>
+                              <video
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full rounded-lg aspect-video max-h-60 bg-black"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div>
+                          <label
+                            onDragOver={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              const f = e.dataTransfer.files?.[0];
+                              if (f && !block.isUploading) handleUpload(block.id, f, "video");
+                            }}
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-cyan-500/50 rounded-2xl bg-neutral-850/50 hover:bg-cyan-500/5 cursor-pointer transition"
+                          >
+                            {block.isUploading ? (
+                              <div className="flex items-center gap-2 text-xs text-cyan-400">
+                                <Loader2 className="h-5 w-5 animate-spin" />
+                                <span>Uploading video reel...</span>
+                              </div>
+                            ) : (
+                              <div className="flex flex-col items-center text-center">
+                                <UploadCloud className="h-6 w-6 text-cyan-400 mb-1.5" />
+                                <span className="text-xs font-medium text-neutral-200">
+                                  Click to upload video reel or short
+                                </span>
+                                <span className="text-[10px] text-neutral-400 mt-0.5">
+                                  MP4, MOV, WebM (Max 200MB) • Streamable container
+                                </span>
+                              </div>
+                            )}
+                            <input
+                              type="file"
+                              accept="video/*"
+                              disabled={block.isUploading}
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) handleUpload(block.id, f, "video");
+                                e.target.value = "";
+                              }}
+                              className="hidden"
+                            />
+                          </label>
+
+                          {block.uploadError && (
+                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                              <AlertCircle className="h-3.5 w-3.5" />
+                              <span>{block.uploadError}</span>
+                            </p>
+                          )}
+
+                          {block.path && (
+                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-cyan-400 font-medium">Uploaded Video:</span>
+                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                </div>
+                                {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
+                              </div>
+                              <video
+                                src={getMediaUrl(block.path)}
+                                controls
+                                className="w-full rounded-lg aspect-video max-h-60 bg-black"
+                              />
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
