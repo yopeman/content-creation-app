@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentType } from "@/types";
 import {
   FolderOpen,
@@ -284,9 +285,10 @@ export default function MediaLibraryPage() {
                     <span className="text-neutral-700">•</span>
                     <Link
                       href={`/studio/${item._id}`}
-                      className="text-neutral-400 hover:text-neutral-200"
+                      className="inline-flex items-center gap-1.5 text-neutral-400 hover:text-neutral-200"
                     >
-                      Studio
+                      <span>Studio</span>
+                      <ComingSoonBadge />
                     </Link>
                   </div>
                 </div>

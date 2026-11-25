@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentType } from "@/types";
 import {
   Wand2,
@@ -74,9 +75,10 @@ export default function StudioPage() {
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Studio Banner */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
           <Wand2 className="h-6 w-6 text-purple-400" />
           <span>Multi-Modal AI Studio</span>
+          <ComingSoonBadge />
         </h1>
         <p className="text-xs text-neutral-400 mt-1">
           Generate complete social content packages across Text, Graphics, Audio, and Video.

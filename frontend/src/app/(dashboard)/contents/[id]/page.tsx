@@ -7,6 +7,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentDetail, ContentStatus, ContentType, Platform } from "@/types";
 import {
   ArrowLeft,
@@ -364,6 +365,7 @@ function ContentAdjusterForm({
           >
             <Wand2 className="h-3.5 w-3.5 text-purple-400" />
             <span>AI Studio</span>
+            <ComingSoonBadge />
           </Link>
 
           {/* Dispatch Button */}

@@ -16,6 +16,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 export default function DashboardOverviewPage() {
   const { data: contents = [], isLoading: loadingContents } = useQuery<Content[]>({
@@ -67,6 +68,7 @@ export default function DashboardOverviewPage() {
             >
               <Wand2 className="h-4 w-4" />
               <span>Generate Content with AI</span>
+              <ComingSoonBadge />
             </Link>
             <Link
               href="/contents/new"
@@ -160,6 +162,7 @@ export default function DashboardOverviewPage() {
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 <span>Open Studio</span>
+                <ComingSoonBadge />
               </Link>
             </div>
           ) : (

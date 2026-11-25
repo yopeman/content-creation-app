@@ -14,11 +14,12 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Content Manager", href: "/contents", icon: FileText },
-  { name: "AI Studio", href: "/studio", icon: Wand2 },
+  { name: "AI Studio", href: "/studio", icon: Wand2, comingSoon: true },
   { name: "Schedule", href: "/schedule", icon: Send },
   { name: "Media Library", href: "/library", icon: FolderOpen },
   { name: "Connected Platforms", href: "/settings/platforms", icon: Radio },
@@ -61,6 +62,7 @@ export function Sidebar() {
             >
               <Icon className="h-4 w-4 shrink-0" />
               <span>{item.name}</span>
+              {item.comingSoon && <ComingSoonBadge className="ml-auto" />}
             </Link>
           );
         })}

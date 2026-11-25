@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentStatus, ContentType, Platform } from "@/types";
 import {
   FileText,
@@ -219,6 +220,7 @@ export default function ContentsPage() {
           >
             <Wand2 className="h-3.5 w-3.5 text-purple-400" />
             <span>AI Studio</span>
+            <ComingSoonBadge />
           </Link>
           <Link
             href="/contents/new"

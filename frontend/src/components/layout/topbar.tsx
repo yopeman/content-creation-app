@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Wand2, Plus } from "lucide-react";
 import { useAuthStore } from "@/store/auth-store";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 
 export function TopBar() {
   const { user } = useAuthStore();
@@ -22,6 +23,7 @@ export function TopBar() {
         >
           <Wand2 className="h-3.5 w-3.5 text-purple-400" />
           <span>Open AI Studio</span>
+          <ComingSoonBadge />
         </Link>
 
         <Link

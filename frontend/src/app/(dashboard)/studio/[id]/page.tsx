@@ -6,6 +6,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentType, Prompt } from "@/types";
 import {
   ArrowLeft,
@@ -121,7 +122,10 @@ export default function StudioDetailPage() {
           </Link>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">{content.title}</h1>
-            <p className="text-xs text-neutral-400">Iterative AI Prompt Chaining Studio</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-neutral-400">Iterative AI Prompt Chaining Studio</p>
+              <ComingSoonBadge />
+            </div>
           </div>
         </div>
 
