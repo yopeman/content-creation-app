@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
-import { Post, Content } from "@/types";
+import { Post, Content, Platform } from "@/types";
+import { CreatePostModal } from "@/components/calendar/create-post-modal";
 import {
   Send,
   Clock,
@@ -19,6 +20,7 @@ import {
   CheckCircle2,
   Search,
   FileText,
+  Plus,
 } from "lucide-react";
 import { formatDate, parseUtcDate } from "@/lib/utils";
 
@@ -50,6 +52,9 @@ export default function PostsPage() {
   // Notifications
   const [banner, setBanner] = useState<{ type: "success" | "error"; message: string } | null>(null);
 
+  // Create Post Modal State
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+
   // Reschedule Modal State
   const [rescheduleModalPost, setRescheduleModalPost] = useState<Post | null>(null);
   const [rescheduleDateTime, setRescheduleDateTime] = useState<string>("");
@@ -73,6 +78,14 @@ export default function PostsPage() {
     queryKey: ["contents"],
     queryFn: async () => {
       const res = await apiClient.get<Content[]>("/contents");
+      return res.data;
+    },
+  });
+
+  const { data: platforms = [] } = useQuery<Platform[]>({
+    queryKey: ["platforms"],
+    queryFn: async () => {
+      const res = await apiClient.get<Platform[]>("/platforms");
       return res.data;
     },
   });
@@ -258,6 +271,15 @@ export default function PostsPage() {
         <div className="flex items-center gap-2.5">
           <button
             type="button"
+            onClick={() => setIsCreateOpen(true)}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            <span>Create Post</span>
+          </button>
+
+          <button
+            type="button"
             disabled={workerMutation.isPending}
             onClick={() => workerMutation.mutate()}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium border border-neutral-700 transition"
@@ -408,6 +430,25 @@ export default function PostsPage() {
               ? "Create or generate content in the Content Manager and schedule them for dispatch."
               : "Try switching filter tabs or clearing your search query."}
           </p>
+          {posts.length === 0 && (
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <button
+                type="button"
+                onClick={() => setIsCreateOpen(true)}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Create Post</span>
+              </button>
+              <Link
+                href="/contents/new"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium border border-neutral-700 transition"
+              >
+                <FileText className="h-4 w-4" />
+                <span>Create Content</span>
+              </Link>
+            </div>
+          )}
         </div>
       ) : (
         <div className="space-y-3">
@@ -754,6 +795,16 @@ export default function PostsPage() {
           </div>
         </div>
       )}
+
+      {/* Create Post Modal */}
+      <CreatePostModal
+        open={isCreateOpen}
+        initialDate={null}
+        contents={contents}
+        platforms={platforms}
+        onClose={() => setIsCreateOpen(false)}
+        onSuccess={(message) => showNotification("success", message)}
+      />
     </div>
   );
 }

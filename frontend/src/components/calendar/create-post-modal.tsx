@@ -85,7 +85,19 @@ export function CreatePostModal({
     } else if (!open && dialog.open) {
       dialog.close();
     }
-  }, [open]);
+
+    if (open) {
+      if ((!selectedContentId || !contents.some((c) => c._id === selectedContentId)) && contents.length > 0) {
+        setSelectedContentId(contents[0]._id);
+      }
+      if (selectedPlatformIds.length === 0 && platforms.length > 0) {
+        const connected = platforms.filter((p) => p.status === "connected");
+        setSelectedPlatformIds(connected.length > 0 ? [connected[0]._id] : [platforms[0]._id]);
+      }
+      setScheduledAt(getDefaultScheduleString(initialDate));
+      setFormError(null);
+    }
+  }, [open, contents, platforms, initialDate, selectedContentId, selectedPlatformIds.length]);
 
   // Light-dismiss fallback for browsers without <dialog closedby="any">
   useEffect(() => {
