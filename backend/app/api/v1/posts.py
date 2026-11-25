@@ -71,7 +71,7 @@ async def dispatch_post_target(
         if text_details:
             text_content = "\n\n".join(d.text for d in text_details)
         else:
-            text_content = content.title
+            text_content = "" #content.title
 
     # Extract media: prioritize video, then image, then audio
     media_path = None

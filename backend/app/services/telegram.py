@@ -187,7 +187,7 @@ async def send_telegram_post(
             combined_text = text or override.get("text") or override.get("caption")
             if not combined_text:
                 texts = [getattr(d, "text", "") for d in text_items if getattr(d, "text", "")]
-                combined_text = "\n\n".join(texts) if texts else "New Content Update"
+                combined_text = "\n\n".join(texts) if texts else ""
 
             sent_message_ids: List[str] = []
             external_url: Optional[str] = None
