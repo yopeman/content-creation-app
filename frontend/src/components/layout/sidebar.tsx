@@ -9,6 +9,7 @@ import {
   Wand2,
   FolderOpen,
   Send,
+  CalendarDays,
   Radio,
   LogOut,
 } from "lucide-react";
@@ -20,6 +21,7 @@ const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Content Manager", href: "/contents", icon: FileText },
   { name: "AI Studio", href: "/studio", icon: Wand2, comingSoon: true },
+  { name: "Calendar", href: "/calendar", icon: CalendarDays },
   { name: "Schedule", href: "/schedule", icon: Send },
   { name: "Media Library", href: "/library", icon: FolderOpen },
   { name: "Connected Platforms", href: "/settings/platforms", icon: Radio },
