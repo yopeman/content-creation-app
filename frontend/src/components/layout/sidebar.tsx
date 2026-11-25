@@ -32,9 +32,9 @@ export function Sidebar() {
   const { user, logout } = useAuthStore();
 
   return (
-    <aside className="w-64 border-r border-neutral-800 bg-neutral-900/50 flex flex-col shrink-0 min-h-screen">
+    <aside className="w-64 border-r border-neutral-800 bg-neutral-900/50 flex flex-col shrink-0 h-full">
       {/* Brand Header */}
-      <div className="h-16 flex items-center px-6 gap-3 border-b border-neutral-800">
+      <div className="h-16 shrink-0 flex items-center px-6 gap-3 border-b border-neutral-800">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
           <Sparkles className="h-5 w-5" />
         </div>
@@ -45,7 +45,7 @@ export function Sidebar() {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-1">
+      <nav className="flex-1 min-h-0 px-3 py-4 space-y-1 overflow-y-auto">
         {navItems.map((item) => {
           const isActive =
             item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
@@ -71,7 +71,7 @@ export function Sidebar() {
       </nav>
 
       {/* User Section */}
-      <div className="p-3 border-t border-neutral-800">
+      <div className="p-3 border-t border-neutral-800 shrink-0">
         <div className="p-3 rounded-xl bg-neutral-800/40 border border-neutral-800/80 flex items-center justify-between">
           <div className="min-w-0 pr-2">
             <p className="text-xs font-semibold text-white truncate">{user?.name || "Creator"}</p>

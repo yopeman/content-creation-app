@@ -9,7 +9,7 @@ export function TopBar() {
   const { user } = useAuthStore();
 
   return (
-    <header className="h-16 border-b border-neutral-800 bg-neutral-900/30 backdrop-blur px-8 flex items-center justify-between sticky top-0 z-30">
+    <header className="h-16 shrink-0 border-b border-neutral-800 bg-neutral-900/30 backdrop-blur px-8 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-2">
         <span className="text-xs text-neutral-400 font-medium">Workspace</span>
         <span className="text-neutral-600">/</span>
