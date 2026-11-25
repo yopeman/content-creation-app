@@ -81,6 +81,11 @@ class ScheduledPostWorker:
                     await post.save()
                     continue
 
+                # Concurrency lock: mark post as PUBLISHING so overlapping worker ticks or triggers do not duplicate dispatch
+                post.status = PostStatus.PUBLISHING
+                post.updated_at = datetime.now(timezone.utc)
+                await post.save()
+
                 targets = await PostTarget.find(
                     PostTarget.post_id == post.id,
                     PostTarget.deleted_at == None,  # noqa: E711

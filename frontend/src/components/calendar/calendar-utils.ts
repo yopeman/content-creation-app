@@ -1,4 +1,5 @@
 import { Post } from "@/types";
+import { parseUtcDate } from "@/lib/utils";
 
 export function getApiErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "response" in err) {
@@ -26,14 +27,14 @@ export function toDateTimeLocalString(date: Date): string {
  */
 export function getPostCalendarDate(post: Post): Date {
   if (post.status === "scheduled" && post.scheduled_at) {
-    return new Date(post.scheduled_at);
+    return parseUtcDate(post.scheduled_at) || new Date(post.scheduled_at);
   }
 
   if (post.status === "published" || post.status === "partial") {
     const publishedTimestamps = post.targets
       ?.map((t) => t.published_at)
       .filter((d): d is string => Boolean(d))
-      .map((d) => new Date(d).getTime())
+      .map((d) => (parseUtcDate(d) || new Date(d)).getTime())
       .filter((t) => !Number.isNaN(t));
 
     if (publishedTimestamps && publishedTimestamps.length > 0) {
@@ -42,7 +43,7 @@ export function getPostCalendarDate(post: Post): Date {
   }
 
   const raw = post.scheduled_at || post.updated_at || post.created_at;
-  return new Date(raw);
+  return parseUtcDate(raw) || new Date(raw);
 }
 
 export function getStatusBadgeClasses(status: Post["status"]): string {

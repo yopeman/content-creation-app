@@ -20,7 +20,7 @@ import {
   Search,
   FileText,
 } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import { formatDate, parseUtcDate } from "@/lib/utils";
 
 function getErrorMessage(err: unknown, fallback: string): string {
   if (err && typeof err === "object" && "response" in err) {
@@ -180,7 +180,7 @@ export default function PostsPage() {
   const openRescheduleModal = (post: Post) => {
     let initialDate: Date;
     if (post.scheduled_at) {
-      initialDate = new Date(post.scheduled_at);
+      initialDate = parseUtcDate(post.scheduled_at) || new Date(post.scheduled_at);
       if (initialDate.getTime() < Date.now()) {
         initialDate = new Date(Date.now() + 3600 * 1000);
       }

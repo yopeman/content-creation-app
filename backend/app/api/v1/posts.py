@@ -135,13 +135,20 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
     target_statuses = [t.status.lower() for t in payload.targets if t.status]
     has_target_scheduled = any(t.scheduled_at for t in payload.targets)
 
+    # Determine consolidated scheduled_at timestamp
+    resolved_scheduled_at = payload.scheduled_at
+    if not resolved_scheduled_at and has_target_scheduled:
+        target_dates = [t.scheduled_at for t in payload.targets if t.scheduled_at]
+        if target_dates:
+            resolved_scheduled_at = min(target_dates)
+
     if payload.status is not None:
         initial_status = payload.status
-        if initial_status == PostStatus.DRAFT and (payload.scheduled_at or has_target_scheduled):
+        if initial_status == PostStatus.DRAFT and (resolved_scheduled_at or has_target_scheduled):
             initial_status = PostStatus.SCHEDULED
     elif "published" in target_statuses:
         initial_status = PostStatus.PUBLISHED
-    elif "scheduled" in target_statuses or payload.scheduled_at or has_target_scheduled:
+    elif "scheduled" in target_statuses or resolved_scheduled_at or has_target_scheduled:
         initial_status = PostStatus.SCHEDULED
     elif payload.targets:
         initial_status = PostStatus.PUBLISHED
@@ -151,7 +158,7 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
     post = Post(
         user_id=user_id,
         content_id=payload.content_id,
-        scheduled_at=payload.scheduled_at,
+        scheduled_at=resolved_scheduled_at,
         status=initial_status,
     )
     await post.insert()
@@ -163,7 +170,7 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
             user_id=user_id,
             platform_id=target_data.platform_id,
             platform_code=target_data.platform_code,
-            scheduled_at=target_data.scheduled_at or payload.scheduled_at,
+            scheduled_at=target_data.scheduled_at or resolved_scheduled_at,
             payload_override=target_data.payload_override,
             status=PostTargetStatus.PENDING,
         )
@@ -173,8 +180,8 @@ async def create_post(payload: PostCreate, current_user: User = Depends(get_curr
     # 3. If post has a future scheduled time, hold it for the background worker; otherwise dispatch immediately
     now = datetime.now(timezone.utc)
     has_future_schedule = (
-        (payload.scheduled_at is not None and payload.scheduled_at > now)
-        or any(t.scheduled_at is not None and t.scheduled_at > now for t in payload.targets)
+        (resolved_scheduled_at is not None and resolved_scheduled_at > now)
+        or any(t.scheduled_at is not None and t.scheduled_at > now for t in created_targets)
     )
 
     if has_future_schedule:

@@ -1,8 +1,17 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from app.models.enums import PlatformCode, PostStatus, PostTargetStatus
+
+
+def ensure_utc_datetime(v: Optional[datetime]) -> Optional[datetime]:
+    """Ensures datetime is timezone-aware and normalized to UTC."""
+    if v is None:
+        return None
+    if v.tzinfo is None:
+        return v.replace(tzinfo=timezone.utc)
+    return v.astimezone(timezone.utc)
 
 
 class PostTargetBase(BaseModel):
@@ -10,6 +19,11 @@ class PostTargetBase(BaseModel):
     platform_code: PlatformCode
     scheduled_at: Optional[datetime] = None
     payload_override: Dict[str, Any] = Field(default_factory=dict)
+
+    @field_validator("scheduled_at", mode="after")
+    @classmethod
+    def validate_scheduled_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return ensure_utc_datetime(v)
 
 
 class PostTargetCreate(PostTargetBase):
@@ -32,6 +46,11 @@ class PostTargetResponse(PostTargetBase):
 
     model_config = ConfigDict(populate_by_name=True)
 
+    @field_validator("scheduled_at", "next_attempt_at", "published_at", "created_at", "updated_at", mode="after")
+    @classmethod
+    def validate_datetimes(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return ensure_utc_datetime(v)
+
 
 class PostCreate(BaseModel):
     content_id: PydanticObjectId
@@ -39,9 +58,19 @@ class PostCreate(BaseModel):
     status: Optional[PostStatus] = None
     targets: List[PostTargetCreate] = Field(default_factory=list)
 
+    @field_validator("scheduled_at", mode="after")
+    @classmethod
+    def validate_scheduled_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return ensure_utc_datetime(v)
+
 
 class PostReschedule(BaseModel):
     scheduled_at: datetime
+
+    @field_validator("scheduled_at", mode="after")
+    @classmethod
+    def validate_scheduled_at(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return ensure_utc_datetime(v)
 
 
 class PostResponse(BaseModel):
@@ -55,3 +84,8 @@ class PostResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(populate_by_name=True)
+
+    @field_validator("scheduled_at", "created_at", "updated_at", mode="after")
+    @classmethod
+    def validate_datetimes(cls, v: Optional[datetime]) -> Optional[datetime]:
+        return ensure_utc_datetime(v)

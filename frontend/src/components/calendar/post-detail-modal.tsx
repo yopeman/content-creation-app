@@ -16,7 +16,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { apiClient } from "@/lib/api-client";
-import { formatDate } from "@/lib/utils";
+import { formatDate, parseUtcDate } from "@/lib/utils";
 import { Content, Post } from "@/types";
 import {
   getApiErrorMessage,
@@ -40,7 +40,7 @@ export function PostDetailModal({ post, content, onClose, onNotify }: PostDetail
   const [showReschedule, setShowReschedule] = useState(false);
   const [rescheduleValue, setRescheduleValue] = useState(() => {
     const baseDate = post?.scheduled_at
-      ? new Date(post.scheduled_at)
+      ? parseUtcDate(post.scheduled_at) || new Date(post.scheduled_at)
       : new Date(Date.now() + 3600 * 1000);
     return toDateTimeLocalString(baseDate);
   });

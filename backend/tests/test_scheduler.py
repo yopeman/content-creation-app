@@ -184,3 +184,61 @@ async def test_reschedule_cancel_and_delete_post(auth_client: AsyncClient):
     get_resp = await auth_client.get(f"/api/v1/posts/{post_id}")
     assert get_resp.status_code == 404
 
+
+@pytest.mark.asyncio
+async def test_timezone_scheduled_post_handling(auth_client: AsyncClient):
+    """Verifies that scheduled posts with naive or explicit timezone offsets
+
+    are normalized to UTC, properly held, returned with 'Z' suffix, and dispatched when due.
+    """
+    p_resp = await auth_client.post(
+        "/api/v1/platforms/tg",
+        json={"bot_token": "123456:TZ-TEST-TOKEN", "chat_id": "@tz_channel"},
+    )
+    p_id = p_resp.json()["_id"]
+
+    c_resp = await auth_client.post(
+        "/api/v1/contents",
+        json={
+            "title": "Timezone Precision Content",
+            "details": [{"type": "text", "text": "Testing timezone normalization"}],
+            "status": "ready",
+        },
+    )
+    c_id = c_resp.json()["_id"]
+
+    # 1. Schedule with explicit timezone offset (+03:00) 2 hours in the future
+    tz_future = (datetime.now(timezone(timedelta(hours=3))) + timedelta(hours=2)).isoformat()
+    post_resp1 = await auth_client.post(
+        "/api/v1/posts",
+        json={
+            "content_id": c_id,
+            "scheduled_at": tz_future,
+            "targets": [{"platform_id": p_id, "platform_code": "TG"}],
+        },
+    )
+    assert post_resp1.status_code == 201
+    post1_data = post_resp1.json()
+    assert post1_data["status"] == PostStatus.SCHEDULED
+    # Must end with Z indicating standardized UTC
+    assert post1_data["scheduled_at"].endswith("Z")
+
+    # 2. Schedule with naive datetime (no tz offset) 4 hours in the future
+    naive_future = (datetime.now(timezone.utc) + timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:%S")
+    post_resp2 = await auth_client.post(
+        "/api/v1/posts",
+        json={
+            "content_id": c_id,
+            "scheduled_at": naive_future,
+            "targets": [{"platform_id": p_id, "platform_code": "TG"}],
+        },
+    )
+    assert post_resp2.status_code == 201
+    post2_data = post_resp2.json()
+    assert post2_data["status"] == PostStatus.SCHEDULED
+    assert post2_data["scheduled_at"].endswith("Z")
+
+    # 3. Running worker now should not process future posts
+    processed = await scheduled_post_worker.process_due_posts()
+    assert processed == 0
+

@@ -14,10 +14,25 @@ export function formatBytes(bytes?: number, decimals = 1) {
   return `${parseFloat((bytes / Math.pow(k, i)).toFixed(dm))} ${sizes[i]}`;
 }
 
+export function parseUtcDate(dateString?: string | null): Date | null {
+  if (!dateString) return null;
+  const clean = dateString.trim();
+  if (!clean) return null;
+  // If the string lacks timezone offset or trailing 'Z', treat it as UTC
+  const hasTimezone =
+    clean.endsWith("Z") ||
+    clean.includes("+") ||
+    (clean.length > 10 && clean.lastIndexOf("-") > 10);
+  const normalized = hasTimezone ? clean : `${clean}Z`;
+  const d = new Date(normalized);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function formatDate(dateString?: string | null): string {
   if (!dateString) return "Not set";
   try {
-    const d = new Date(dateString);
+    const d = parseUtcDate(dateString);
+    if (!d) return dateString;
     return d.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
