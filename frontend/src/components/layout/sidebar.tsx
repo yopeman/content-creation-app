@@ -22,7 +22,7 @@ const navItems = [
   { name: "Content Manager", href: "/contents", icon: FileText },
   { name: "AI Studio", href: "/studio", icon: Wand2, comingSoon: true },
   { name: "Calendar", href: "/calendar", icon: CalendarDays },
-  { name: "Schedule", href: "/schedule", icon: Send },
+  { name: "Posts", href: "/posts", icon: Send },
   { name: "Media Library", href: "/library", icon: FolderOpen },
   { name: "Connected Platforms", href: "/settings/platforms", icon: Radio },
 ];

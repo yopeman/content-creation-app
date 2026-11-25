@@ -11,7 +11,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/contents") ||
     pathname.startsWith("/studio") ||
     pathname.startsWith("/library") ||
-    pathname.startsWith("/schedule") ||
+    pathname.startsWith("/calendar") ||
+    pathname.startsWith("/posts") ||
     pathname.startsWith("/settings");
 
   if (!token && isDashboardRoute) {
@@ -35,7 +36,8 @@ export const config = {
     "/contents/:path*",
     "/studio/:path*",
     "/library/:path*",
-    "/schedule/:path*",
+    "/calendar/:path*",
+    "/posts/:path*",
     "/settings/:path*",
   ],
 };
