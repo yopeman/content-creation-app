@@ -353,7 +353,7 @@ export default function CalendarPage() {
                             )}`}
                           >
                             <span className="font-mono text-[10px] opacity-80 shrink-0">
-                              {format(date, "HH:mm")}
+                              {format(date, "h:mm a")}
                             </span>
                             {platformCode && (
                               <span className="font-bold text-[9px] uppercase opacity-90 shrink-0">
@@ -462,7 +462,7 @@ export default function CalendarPage() {
                         </span>
                         <span className="text-[11px] text-neutral-400 flex items-center gap-1 font-mono">
                           <Clock className="h-3 w-3" />
-                          {format(date, "HH:mm")}
+                          {format(date, "h:mm a")}
                         </span>
                       </div>
 

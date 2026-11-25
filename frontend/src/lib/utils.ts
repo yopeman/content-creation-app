@@ -37,10 +37,29 @@ export function formatDate(dateString?: string | null): string {
       month: "short",
       day: "numeric",
       year: "numeric",
-      hour: "2-digit",
+      hour: "numeric",
       minute: "2-digit",
+      hour12: true,
     });
   } catch {
     return dateString;
+  }
+}
+
+export function formatTime(dateOrString?: Date | string | null): string {
+  if (!dateOrString) return "";
+  try {
+    const d =
+      typeof dateOrString === "string"
+        ? parseUtcDate(dateOrString) || new Date(dateOrString)
+        : dateOrString;
+    if (!d || Number.isNaN(d.getTime())) return "";
+    return d.toLocaleTimeString("en-US", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+    });
+  } catch {
+    return "";
   }
 }
