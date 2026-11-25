@@ -147,21 +147,12 @@ export default function StudioPage() {
 
         {/* Generate Button */}
         <button
-          onClick={() => generateMutation.mutate()}
-          disabled={!prompt.trim() || generateMutation.isPending}
-          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50"
+          disabled
+          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          {generateMutation.isPending ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <span>Orchestrating AI Generation Agent...</span>
-            </>
-          ) : (
-            <>
-              <Sparkles className="h-4 w-4" />
-              <span>Generate Multi-Modal Assets</span>
-            </>
-          )}
+          <Sparkles className="h-4 w-4" />
+          <span>Generate Multi-Modal Assets</span>
+          <ComingSoonBadge />
         </button>
       </div>
 

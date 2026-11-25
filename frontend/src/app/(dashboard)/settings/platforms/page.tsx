@@ -134,7 +134,7 @@ export default function PlatformSettingsPage() {
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
         >
           <Plus className="h-4 w-4" />
-          <span>Connect Telegram Channel</span>
+          <span>Connect Platform</span>
         </button>
       </div>
 
@@ -220,15 +220,6 @@ export default function PlatformSettingsPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Security Note */}
-      <div className="p-4 rounded-xl bg-neutral-900/60 border border-neutral-800 flex items-start gap-3">
-        <ShieldCheck className="h-5 w-5 text-indigo-400 shrink-0 mt-0.5" />
-        <div className="text-xs text-neutral-400 leading-relaxed">
-          <strong className="text-neutral-200">Security Guarantee:</strong> All platform API keys
-          and bot tokens are encrypted in the database using isolated authenticated Fernet encryption (AES-128-CBC + HMAC) and are never exposed in browser API responses.
-        </div>
       </div>
 
       {/* Connect Modal */}

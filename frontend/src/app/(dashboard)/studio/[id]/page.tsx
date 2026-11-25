@@ -241,21 +241,12 @@ export default function StudioDetailPage() {
               </div>
 
               <button
-                onClick={() => improveMutation.mutate()}
-                disabled={!instruction.trim() || improveMutation.isPending}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition disabled:opacity-50"
+                disabled
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {improveMutation.isPending ? (
-                  <>
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span>Applying Changes...</span>
-                  </>
-                ) : (
-                  <>
-                    <Wand2 className="h-3.5 w-3.5" />
-                    <span>Refine Content</span>
-                  </>
-                )}
+                <Wand2 className="h-3.5 w-3.5" />
+                <span>Refine Content</span>
+                <ComingSoonBadge />
               </button>
             </div>
           </div>
