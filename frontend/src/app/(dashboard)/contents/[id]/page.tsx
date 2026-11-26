@@ -8,6 +8,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
+import { ContentStatusBadge } from "@/components/ui/status-badge";
+import { ContentStatusManager } from "@/components/ui/content-status-manager";
 import { Content, ContentDetail, ContentStatus, ContentType, Platform } from "@/types";
 import {
   ArrowLeft,
@@ -354,10 +356,11 @@ function ContentAdjusterForm({
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-2xl font-bold text-foreground tracking-tight truncate max-w-md">
                 Adjust: {title || "Untitled Content"}
               </h1>
+              <ContentStatusBadge status={status} />
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
               Updated {formatDate(content.updated_at)} • {blocks.length} multimodal block(s)
@@ -469,37 +472,27 @@ function ContentAdjusterForm({
       )}
 
       {/* Main Settings Card */}
-      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-5">
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-foreground mb-1.5">
-              Content Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Weekly Product Highlights"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
-            />
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-foreground mb-1.5">
-              Current Status
-            </label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as ContentStatus)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
-            >
-              <option value="draft">Draft</option>
-              <option value="ready">Ready (Ready to Publish)</option>
-              <option value="approved">Approved</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-6">
+        <div>
+          <label className="block text-xs font-semibold text-foreground mb-1.5">
+            Content Title <span className="text-danger">*</span>
+          </label>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="e.g. Weekly Product Highlights"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
+          />
         </div>
+
+        {/* Interactive Status Lifecycle Manager */}
+        <ContentStatusManager
+          value={status}
+          onChange={(newStatus) => setStatus(newStatus)}
+          showStepper={true}
+          showDescriptions={true}
+        />
       </div>
 
       {activeTab === "edit" ? (

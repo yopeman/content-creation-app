@@ -6,6 +6,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiClient } from "@/lib/api-client";
 import { Post, Content, Platform } from "@/types";
 import { CreatePostModal } from "@/components/calendar/create-post-modal";
+import { PostStatusBadge } from "@/components/ui/status-badge";
 import {
   Send,
   Clock,
@@ -434,21 +435,7 @@ export default function PostsPage() {
               >
                 <div className="space-y-1.5 flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span
-                      className={`text-[11px] px-2.5 py-0.5 rounded-full font-semibold capitalize ${
-                        isPublished
-                          ? "bg-success-soft text-success border border-success/20"
-                          : isScheduled
-                          ? "bg-sky-500/10 text-sky-400 border border-sky-500/20"
-                          : isFailed
-                          ? "bg-danger-soft text-danger border border-danger/20"
-                          : isPartial
-                          ? "bg-warning-soft text-warning border border-warning/20"
-                          : "bg-surface-muted text-muted-foreground border border-border"
-                      }`}
-                    >
-                      {post.status}
-                    </span>
+                    <PostStatusBadge status={post.status} size="sm" />
 
                     {post.scheduled_at && (
                       <span className="text-xs text-muted-foreground flex items-center gap-1 font-medium">
