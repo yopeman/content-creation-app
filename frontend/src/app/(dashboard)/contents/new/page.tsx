@@ -249,7 +249,7 @@ export default function NewContentPage() {
               onClick={() => setActiveTab("edit")}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "edit"
-                  ? "bg-primary text-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -260,7 +260,7 @@ export default function NewContentPage() {
               onClick={() => setActiveTab("preview")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "preview"
-                  ? "bg-primary text-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -273,7 +273,7 @@ export default function NewContentPage() {
             type="button"
             disabled={createMutation.isPending}
             onClick={() => createMutation.mutate()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
           >
             {createMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />

@@ -409,7 +409,7 @@ function ContentAdjusterForm({
               onClick={() => setActiveTab("edit")}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "edit"
-                  ? "bg-primary text-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -420,7 +420,7 @@ function ContentAdjusterForm({
               onClick={() => setActiveTab("preview")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "preview"
-                  ? "bg-primary text-foreground shadow-sm"
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -434,7 +434,7 @@ function ContentAdjusterForm({
             type="button"
             disabled={saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
           >
             {saveMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1203,7 +1203,7 @@ function ContentAdjusterForm({
                 onClick={() => setIsScheduledMode(false)}
                 className={`py-1.5 rounded-lg transition text-center ${
                   !isScheduledMode
-                    ? "bg-primary text-foreground shadow-sm font-semibold"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -1222,7 +1222,7 @@ function ContentAdjusterForm({
                 }}
                 className={`py-1.5 rounded-lg transition text-center ${
                   isScheduledMode
-                    ? "bg-primary text-foreground shadow-sm font-semibold"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
@@ -1365,7 +1365,7 @@ function ContentAdjusterForm({
                     });
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
               >
                 {dispatchMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
