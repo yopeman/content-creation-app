@@ -25,6 +25,7 @@ export interface SupportedPlatform {
   description: string;
   is_supported: boolean;
   required_details: string[];
+  has_default_token?: boolean;
 }
 
 export interface Platform {

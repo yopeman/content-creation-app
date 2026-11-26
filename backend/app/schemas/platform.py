@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 from beanie import PydanticObjectId
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from app.models.enums import PlatformCode, PlatformStatus
 
 
@@ -11,16 +11,36 @@ class SupportedPlatform(BaseModel):
     description: str
     is_supported: bool = True
     required_details: List[str] = Field(default_factory=list)
+    has_default_token: bool = False
 
 
 class TelegramPlatformCreate(BaseModel):
-    bot_token: str = Field(..., description="Telegram Bot API token from @BotFather", min_length=10)
+    bot_token: Optional[str] = Field(
+        None,
+        description="Telegram Bot API token from @BotFather. Optional if DEFAULT_TELEGRAM_BOT_TOKEN is configured in backend environment.",
+    )
     chat_id: str = Field(..., description="Target Channel username (e.g. @mychannel) or numeric chat ID")
+
+    @field_validator("bot_token", mode="before")
+    @classmethod
+    def clean_bot_token(cls, v: Any) -> Optional[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
 
 
 class TelegramPlatformUpdate(BaseModel):
-    bot_token: Optional[str] = Field(None, description="Updated Telegram Bot API token", min_length=10)
+    bot_token: Optional[str] = Field(None, description="Updated Telegram Bot API token")
     chat_id: Optional[str] = Field(None, description="Updated Target Channel username or numeric chat ID")
+
+    @field_validator("bot_token", mode="before")
+    @classmethod
+    def clean_bot_token(cls, v: Any) -> Optional[str]:
+        if isinstance(v, str):
+            v = v.strip()
+            return v if v else None
+        return v
 
 
 class PlatformBase(BaseModel):

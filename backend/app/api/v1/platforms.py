@@ -3,6 +3,7 @@ from typing import List, Optional
 from beanie import PydanticObjectId
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from app.api.deps import get_current_user
+from app.core.config import settings
 from app.core.security import encrypt_secret
 from app.models.enums import PlatformCode, PlatformStatus
 from app.models.platform import Platform
@@ -18,22 +19,26 @@ from app.services.telegram import get_telegram_chat_info
 
 router = APIRouter()
 
-# Registry of currently supported platforms (currently only Telegram is active)
-SUPPORTED_PLATFORMS: List[SupportedPlatform] = [
-    SupportedPlatform(
-        code=PlatformCode.TG,
-        name="Telegram",
-        description="Publish messages, photos, and videos to Telegram channels and groups via Bot API.",
-        is_supported=True,
-        required_details=["bot_token", "chat_id"],
-    )
-]
+
+def get_supported_platforms() -> List[SupportedPlatform]:
+    has_default = bool(settings.default_tg_bot_token)
+    required = ["chat_id"] if has_default else ["bot_token", "chat_id"]
+    return [
+        SupportedPlatform(
+            code=PlatformCode.TG,
+            name="Telegram",
+            description="Publish messages, photos, and videos to Telegram channels and groups via Bot API.",
+            is_supported=True,
+            required_details=required,
+            has_default_token=has_default,
+        )
+    ]
 
 
 @router.get("/supported", response_model=List[SupportedPlatform], summary="List Supported Platforms")
 async def list_supported_platforms():
     """List all third-party platforms currently supported for connection (currently only TG)."""
-    return SUPPORTED_PLATFORMS
+    return get_supported_platforms()
 
 
 @router.get("", response_model=List[PlatformResponse], summary="List Connected Platforms")
@@ -56,8 +61,21 @@ async def connect_telegram_platform(
 ):
     """Connect a Telegram channel or group using bot token and chat ID.
 
+    If bot_token is omitted, the default Telegram bot token from environment (.env) is used.
     Automatically verifies credentials with Telegram API and resolves channel name.
     """
+    bot_token = payload.bot_token or settings.default_tg_bot_token
+    if not bot_token:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Telegram bot token is required. Please provide a bot token or configure DEFAULT_TELEGRAM_BOT_TOKEN in .env.",
+        )
+    if len(bot_token) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Telegram Bot Token. Please check the token provided by @BotFather.",
+        )
+
     existing = await Platform.find_one(
         Platform.user_id == current_user.id,
         Platform.code == PlatformCode.TG,
@@ -71,10 +89,12 @@ async def connect_telegram_platform(
         )
 
     # Validate bot credentials and resolve channel/chat name from Telegram API
-    chat_info = await get_telegram_chat_info(payload.bot_token, payload.chat_id)
+    chat_info = await get_telegram_chat_info(bot_token, payload.chat_id)
 
+    is_using_default = not bool(payload.bot_token)
     details = {
-        "encrypted_bot_token": encrypt_secret(payload.bot_token),
+        "encrypted_bot_token": encrypt_secret(bot_token),
+        "is_default_bot_token": is_using_default,
         "chat_id": payload.chat_id,
         "type": chat_info.get("type"),
         "username": chat_info.get("username"),
@@ -114,6 +134,12 @@ async def edit_telegram_platform(
     if not payload.bot_token and not payload.chat_id:
         return platform
 
+    if payload.bot_token and len(payload.bot_token) < 10:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Telegram Bot Token. Please check the token provided by @BotFather.",
+        )
+
     active_bot_token = payload.bot_token or platform.get_decrypted_bot_token()
     active_chat_id = payload.chat_id or platform.details.get("chat_id") or platform.platform_account_id
 
@@ -140,6 +166,7 @@ async def edit_telegram_platform(
 
     if payload.bot_token:
         platform.details["encrypted_bot_token"] = encrypt_secret(payload.bot_token)
+        platform.details["is_default_bot_token"] = False
     if payload.chat_id:
         platform.details["chat_id"] = payload.chat_id
         platform.platform_account_id = payload.chat_id

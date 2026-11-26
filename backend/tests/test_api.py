@@ -602,6 +602,60 @@ async def test_media_upload_magic_bytes_and_size_limits(auth_client: AsyncClient
     assert audio_resp.json()["detail"]["type"] == "audio"
 
 
+@pytest.mark.asyncio
+async def test_telegram_default_bot_token_lifecycle(auth_client: AsyncClient):
+    from app.core.config import settings
+    from app.models.platform import Platform
+    from beanie import PydanticObjectId
+
+    # 1. When no default bot token is set and no bot_token in payload -> 400 Bad Request
+    old_token = settings.DEFAULT_TELEGRAM_BOT_TOKEN
+    settings.DEFAULT_TELEGRAM_BOT_TOKEN = None
+    settings.TELEGRAM_BOT_TOKEN = None
+
+    no_token_resp = await auth_client.post(
+        "/api/v1/platforms/tg",
+        json={"chat_id": "@default_channel_fail"},
+    )
+    assert no_token_resp.status_code == 400
+    assert "Telegram bot token is required" in no_token_resp.json()["detail"]
+
+    # 2. Set default telegram bot token in settings
+    mock_env_token = "1122334455:ABC-ENV-DEFAULT-BOT-TOKEN-xyz99"
+    settings.DEFAULT_TELEGRAM_BOT_TOKEN = mock_env_token
+
+    # 3. GET /platforms/supported should reflect default token is active
+    supported_resp = await auth_client.get("/api/v1/platforms/supported")
+    assert supported_resp.status_code == 200
+    tg_supp = next(p for p in supported_resp.json() if p["code"] == "TG")
+    assert tg_supp["has_default_token"] is True
+    assert tg_supp["required_details"] == ["chat_id"]
+
+    # 4. Connect telegram channel providing ONLY chat_id
+    connect_resp = await auth_client.post(
+        "/api/v1/platforms/tg",
+        json={"chat_id": "@env_default_channel"},
+    )
+    assert connect_resp.status_code == 201
+    platform_data = connect_resp.json()
+    platform_id = platform_data["_id"]
+    assert platform_data["platform_account_id"] == "@env_default_channel"
+    assert "bot_token" not in platform_data["details"]
+    assert platform_data["details"]["is_default_bot_token"] is True
+
+    # 5. Verify backend decrypts and uses the default token from settings
+    db_platform = await Platform.get(PydanticObjectId(platform_id))
+    assert db_platform is not None
+    assert db_platform.get_decrypted_bot_token() == mock_env_token
+
+    # 6. Re-sync works using the default token
+    sync_resp = await auth_client.post(f"/api/v1/platforms/{platform_id}/sync")
+    assert sync_resp.status_code == 200
+
+    # Clean up setting
+    settings.DEFAULT_TELEGRAM_BOT_TOKEN = old_token
+
+
 
 
 

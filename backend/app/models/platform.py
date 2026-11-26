@@ -20,16 +20,20 @@ class Platform(Document):
 
     def get_decrypted_bot_token(self) -> Optional[str]:
         """Decrypts and returns the stored Telegram bot token for backend operations."""
+        from app.core.config import settings
         from app.core.security import decrypt_secret
+
+        if self.details.get("is_default_bot_token") and settings.default_tg_bot_token:
+            return settings.default_tg_bot_token
 
         enc_token = self.details.get("encrypted_bot_token") or self.details.get("bot_token")
         if not enc_token:
-            return None
+            return settings.default_tg_bot_token
         try:
             return decrypt_secret(enc_token)
         except Exception:
             # Fallback to token as-is if already unencrypted/mock
-            return enc_token
+            return enc_token or settings.default_tg_bot_token
 
     class Settings:
         name = "platforms"

@@ -35,6 +35,9 @@ export default function PlatformSettingsPage() {
     },
   });
 
+  const tgSupported = supported.find((p) => p.code === "TG");
+  const hasDefaultBotToken = Boolean(tgSupported?.has_default_token);
+
   // Connected platforms
   const { data: platforms = [], isLoading } = useQuery<Platform[]>({
     queryKey: ["platforms"],
@@ -47,10 +50,21 @@ export default function PlatformSettingsPage() {
   // Connect Telegram
   const connectMutation = useMutation({
     mutationFn: async () => {
-      const res = await apiClient.post("/platforms/tg", {
-        bot_token: botToken,
-        chat_id: chatId.startsWith("@") ? chatId : `@${chatId}`,
-      });
+      const trimmedChatId = chatId.trim();
+      const formattedChatId =
+        trimmedChatId.startsWith("@") || /^-?\d+$/.test(trimmedChatId)
+          ? trimmedChatId
+          : `@${trimmedChatId}`;
+
+      const payload: { chat_id: string; bot_token?: string } = {
+        chat_id: formattedChatId,
+      };
+
+      if (botToken.trim()) {
+        payload.bot_token = botToken.trim();
+      }
+
+      const res = await apiClient.post("/platforms/tg", payload);
       return res.data;
     },
     onSuccess: () => {
@@ -69,8 +83,14 @@ export default function PlatformSettingsPage() {
   const editMutation = useMutation({
     mutationFn: async (id: string) => {
       const payload: any = {};
-      if (botToken) payload.bot_token = botToken;
-      if (chatId) payload.chat_id = chatId.startsWith("@") ? chatId : `@${chatId}`;
+      if (botToken.trim()) payload.bot_token = botToken.trim();
+      if (chatId.trim()) {
+        const trimmedChatId = chatId.trim();
+        payload.chat_id =
+          trimmedChatId.startsWith("@") || /^-?\d+$/.test(trimmedChatId)
+            ? trimmedChatId
+            : `@${trimmedChatId}`;
+      }
 
       const res = await apiClient.patch(`/platforms/tg/${id}`, payload);
       return res.data;
@@ -170,6 +190,15 @@ export default function PlatformSettingsPage() {
                         <CheckCircle2 className="h-3 w-3" />
                         <span>Connected</span>
                       </span>
+                      {p.details?.is_default_bot_token ? (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-sky-500/10 text-sky-400 font-medium border border-sky-500/20">
+                          Default Bot
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] bg-surface-muted text-muted-foreground font-medium border border-border">
+                          Custom Bot
+                        </span>
+                      )}
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
                       <span>ID: {p.platform_account_id}</span>
@@ -226,7 +255,9 @@ export default function PlatformSettingsPage() {
           <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-foreground">Connect Telegram Channel</h3>
             <p className="text-xs text-muted-foreground">
-              Provide your bot token from @BotFather and your channel username. Make sure your bot is added as an administrator to the channel.
+              {hasDefaultBotToken
+                ? "A default Telegram bot token is configured in .env. Enter your channel ID to connect, or provide an overriding custom bot token below."
+                : "Provide your bot token from @BotFather and your channel username. Make sure your bot is added as an administrator to the channel."}
             </p>
 
             {error && (
@@ -237,14 +268,25 @@ export default function PlatformSettingsPage() {
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-foreground mb-1">
-                  Telegram Bot Token
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-semibold text-foreground">
+                    Telegram Bot Token {hasDefaultBotToken && <span className="font-normal text-muted-foreground">(Optional)</span>}
+                  </label>
+                  {hasDefaultBotToken && (
+                    <span className="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 font-medium">
+                      Default bot active in .env
+                    </span>
+                  )}
+                </div>
                 <input
                   type="password"
                   value={botToken}
                   onChange={(e) => setBotToken(e.target.value)}
-                  placeholder="123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
+                  placeholder={
+                    hasDefaultBotToken
+                      ? "Leave blank to use default bot from .env"
+                      : "123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
+                  }
                   className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
@@ -274,7 +316,7 @@ export default function PlatformSettingsPage() {
               <button
                 type="button"
                 onClick={() => connectMutation.mutate()}
-                disabled={!botToken || !chatId || connectMutation.isPending}
+                disabled={(!botToken.trim() && !hasDefaultBotToken) || !chatId.trim() || connectMutation.isPending}
                 className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
               >
                 {connectMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
@@ -292,6 +334,11 @@ export default function PlatformSettingsPage() {
             <h3 className="text-base font-semibold text-foreground">Edit Telegram Connection</h3>
             <p className="text-xs text-muted-foreground">
               Update your bot token or channel ID for {editingPlatform.account_name}.
+              {editingPlatform.details?.is_default_bot_token && (
+                <span className="block mt-1 text-sky-400">
+                  Currently connected using the default bot token from .env.
+                </span>
+              )}
             </p>
 
             {error && (
