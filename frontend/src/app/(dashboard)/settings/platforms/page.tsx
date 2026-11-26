@@ -24,6 +24,7 @@ export default function PlatformSettingsPage() {
 
   const [botToken, setBotToken] = useState("");
   const [chatId, setChatId] = useState("");
+  const [showCustomToken, setShowCustomToken] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Supported platforms
@@ -60,7 +61,7 @@ export default function PlatformSettingsPage() {
         chat_id: formattedChatId,
       };
 
-      if (botToken.trim()) {
+      if (showCustomToken && botToken.trim()) {
         payload.bot_token = botToken.trim();
       }
 
@@ -70,6 +71,7 @@ export default function PlatformSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["platforms"] });
       setIsConnectOpen(false);
+      setShowCustomToken(false);
       setBotToken("");
       setChatId("");
       setError(null);
@@ -147,6 +149,7 @@ export default function PlatformSettingsPage() {
             setError(null);
             setBotToken("");
             setChatId("");
+            setShowCustomToken(false);
             setIsConnectOpen(true);
           }}
           className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition"
@@ -255,9 +258,7 @@ export default function PlatformSettingsPage() {
           <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-foreground">Connect Telegram Channel</h3>
             <p className="text-xs text-muted-foreground">
-              {hasDefaultBotToken
-                ? "A default Telegram bot token is configured in .env. Enter your channel ID to connect, or provide an overriding custom bot token below."
-                : "Provide your bot token from @BotFather and your channel username. Make sure your bot is added as an administrator to the channel."}
+              Enter your channel username or chat ID. It will connect using the default Telegram bot token from your <code className="text-sky-400 font-mono text-[11px]">.env</code> file.
             </p>
 
             {error && (
@@ -268,47 +269,59 @@ export default function PlatformSettingsPage() {
 
             <div className="space-y-3">
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-semibold text-foreground">
-                    Telegram Bot Token {hasDefaultBotToken && <span className="font-normal text-muted-foreground">(Optional)</span>}
-                  </label>
-                  {hasDefaultBotToken && (
-                    <span className="text-[10px] text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded-full border border-sky-500/20 font-medium">
-                      Default bot active in .env
-                    </span>
-                  )}
-                </div>
-                <input
-                  type="password"
-                  value={botToken}
-                  onChange={(e) => setBotToken(e.target.value)}
-                  placeholder={
-                    hasDefaultBotToken
-                      ? "Leave blank to use default bot from .env"
-                      : "123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
-                  }
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
-                />
-              </div>
-
-              <div>
                 <label className="block text-xs font-semibold text-foreground mb-1">
-                  Channel Username or Chat ID
+                  Channel Username or Chat ID <span className="text-danger">*</span>
                 </label>
                 <input
                   type="text"
                   value={chatId}
                   onChange={(e) => setChatId(e.target.value)}
-                  placeholder="@my_channel_username"
+                  placeholder="@my_channel_username or -100123456789"
                   className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                  autoFocus
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Ensure the bot has been added as an administrator with posting rights to this channel or group.
+                </p>
+              </div>
+
+              {/* Optional Custom Token Toggle */}
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowCustomToken(!showCustomToken)}
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition underline-offset-2 hover:underline"
+                >
+                  <span>{showCustomToken ? "− Hide custom bot token" : "+ Use custom bot token instead"}</span>
+                </button>
+
+                {showCustomToken && (
+                  <div className="mt-2.5 space-y-1 animate-in fade-in duration-200">
+                    <label className="block text-xs font-semibold text-foreground">
+                      Custom Telegram Bot Token
+                    </label>
+                    <input
+                      type="password"
+                      value={botToken}
+                      onChange={(e) => setBotToken(e.target.value)}
+                      placeholder="123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
+                      className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                    <p className="text-[11px] text-muted-foreground">
+                      Overrides the default bot token from .env for this connection.
+                    </p>
+                  </div>
+                )}
               </div>
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
               <button
                 type="button"
-                onClick={() => setIsConnectOpen(false)}
+                onClick={() => {
+                  setIsConnectOpen(false);
+                  setShowCustomToken(false);
+                }}
                 className="px-4 py-2 rounded-lg bg-surface-muted text-muted-foreground text-xs font-medium hover:text-foreground border border-border"
               >
                 Cancel
@@ -316,7 +329,7 @@ export default function PlatformSettingsPage() {
               <button
                 type="button"
                 onClick={() => connectMutation.mutate()}
-                disabled={(!botToken.trim() && !hasDefaultBotToken) || !chatId.trim() || connectMutation.isPending}
+                disabled={!chatId.trim() || connectMutation.isPending || (showCustomToken && !botToken.trim())}
                 className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
               >
                 {connectMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
