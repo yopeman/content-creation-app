@@ -28,6 +28,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     if (typeof window !== "undefined") {
       localStorage.removeItem("yope_token");
       document.cookie = "yope_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+      window.location.href = '/login';
     }
     set({ user: null, token: null, isLoading: false });
   },
