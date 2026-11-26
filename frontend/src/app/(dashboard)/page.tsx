@@ -251,7 +251,7 @@ export default function DashboardOverviewPage() {
             <div className="border-t border-border pt-3">
               <Link
                 href="/settings/platforms"
-                className="w-full py-2 px-3 rounded-lg bg-surface-muted hover:bg-surface text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition border border-border"
+                className="w-full py-2 px-3 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold flex items-center justify-center gap-1.5 shadow-md shadow-primary/20 transition"
               >
                 <Radio className="h-3.5 w-3.5" />
                 <span>Manage Platforms</span>
