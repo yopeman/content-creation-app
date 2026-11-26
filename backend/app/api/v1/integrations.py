@@ -189,13 +189,3 @@ async def claim_ticket(payload: ClaimTicketRequest):
         content_id=content_id_str,
         onboarding=onboarding,
     )
-        has_connected_channel=active_platforms_count > 0,
-    )
-
-    return ClaimTicketResponse(
-        access_token=access_token,
-        token_type="bearer",
-        user=UserResponse.model_validate(user),
-        content_id=content_id_str,
-        onboarding=onboarding,
-    )
