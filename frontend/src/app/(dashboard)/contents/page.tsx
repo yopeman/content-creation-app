@@ -5,7 +5,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
-import { ContentStatusBadge } from "@/components/ui/status-badge";
 import { Content, ContentStatus, Platform } from "@/types";
 import {
   FileText,
@@ -162,10 +161,46 @@ export default function ContentsPage() {
   const readyCount = contents.filter((c) => c.status === "ready").length;
   const draftCount = contents.filter((c) => c.status === "draft").length;
   const approvedCount = contents.filter((c) => c.status === "approved").length;
-  const archivedCount = contents.filter((c) => c.status === "archived").length;
 
   const getStatusBadge = (status: ContentStatus) => {
-    return <ContentStatusBadge status={status} size="sm" />;
+    switch (status) {
+      case "ready":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success border border-success/20">
+            <CheckCircle2 className="h-3 w-3" /> Ready
+          </span>
+        );
+      case "approved":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            <Check className="h-3 w-3" /> Approved
+          </span>
+        );
+      case "draft":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-foreground border border-border">
+            <Clock className="h-3 w-3" /> Draft
+          </span>
+        );
+      case "generating":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-soft text-warning border border-warning/20">
+            <Loader2 className="h-3 w-3 animate-spin" /> Generating
+          </span>
+        );
+      case "archived":
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-500/10 text-purple-400 border border-purple-500/20">
+            <Archive className="h-3 w-3" /> Archived
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded-full text-xs bg-surface-muted text-muted-foreground border border-border">
+            {status}
+          </span>
+        );
+    }
   };
 
   return (
@@ -237,32 +272,17 @@ export default function ContentsPage() {
 
         {/* Status Filter Tabs */}
         <div className="flex flex-wrap items-center gap-1.5">
-          {[
-            { id: "all", label: "All", count: contents.length },
-            { id: "ready", label: "Ready", count: readyCount },
-            { id: "draft", label: "Draft", count: draftCount },
-            { id: "approved", label: "Approved", count: approvedCount },
-            { id: "archived", label: "Archived", count: archivedCount },
-          ].map((tab) => (
+          {["all", "ready", "draft", "approved", "archived"].map((st) => (
             <button
-              key={tab.id}
-              onClick={() => setStatusFilter(tab.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition shrink-0 ${
-                statusFilter === tab.id
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition shrink-0 ${
+                statusFilter === st
                   ? "bg-primary text-primary-foreground shadow-sm font-semibold"
                   : "text-muted-foreground hover:text-foreground hover:bg-surface-muted"
               }`}
             >
-              <span>{tab.label}</span>
-              <span
-                className={`px-1.5 py-0.2 rounded-full text-[10px] font-mono ${
-                  statusFilter === tab.id
-                    ? "bg-primary-foreground/20 text-primary-foreground"
-                    : "bg-surface-muted text-muted-foreground"
-                }`}
-              >
-                {tab.count}
-              </span>
+              {st}
             </button>
           ))}
         </div>
@@ -453,29 +473,23 @@ export default function ContentsPage() {
                     </button>
                   </div>
 
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1">
                     {/* Quick Status Dropdown */}
-                    <div className="relative">
-                      <select
-                        value={content.status}
-                        onChange={(e) =>
-                          statusMutation.mutate({
-                            id: content._id,
-                            status: e.target.value as ContentStatus,
-                          })
-                        }
-                        className="bg-surface-muted text-[11px] font-medium text-foreground border border-border rounded-lg pl-2 pr-5 py-1 focus:outline-none focus:ring-1 focus:ring-primary appearance-none cursor-pointer"
-                        title="Quick status change"
-                      >
-                        <option value="draft">● Draft</option>
-                        <option value="ready">● Ready</option>
-                        <option value="approved">● Approved</option>
-                        <option value="archived">● Archived</option>
-                      </select>
-                      <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[8px] text-muted-foreground">
-                        ▼
-                      </span>
-                    </div>
+                    <select
+                      value={content.status}
+                      onChange={(e) =>
+                        statusMutation.mutate({
+                          id: content._id,
+                          status: e.target.value as ContentStatus,
+                        })
+                      }
+                      className="bg-surface-muted text-[11px] text-foreground border border-border rounded-lg px-2 py-1 focus:outline-none"
+                    >
+                      <option value="draft">Draft</option>
+                      <option value="ready">Ready</option>
+                      <option value="approved">Approved</option>
+                      <option value="archived">Archived</option>
+                    </select>
 
                     {/* Delete button */}
                     <button

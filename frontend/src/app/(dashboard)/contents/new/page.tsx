@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
-import { ContentStatusManager } from "@/components/ui/content-status-manager";
 import { ContentDetail, ContentStatus, ContentType } from "@/types";
 import {
   ArrowLeft,
@@ -294,27 +293,39 @@ export default function NewContentPage() {
       )}
 
       {/* Main Form Fields */}
-      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-6">
-        <div>
-          <label className="block text-xs font-semibold text-foreground mb-1.5">
-            Content Title <span className="text-danger">*</span>
-          </label>
-          <input
-            type="text"
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            placeholder="e.g. Summer Promo Launch: 30% Off Announcement"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
-          />
-        </div>
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-5">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Title */}
+          <div className="sm:col-span-2">
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Content Title <span className="text-danger">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Summer Promo Launch: 30% Off Announcement"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
+            />
+          </div>
 
-        {/* Initial Status Selector */}
-        <ContentStatusManager
-          value={status}
-          onChange={(newStatus) => setStatus(newStatus)}
-          showStepper={false}
-          showDescriptions={true}
-        />
+          {/* Status */}
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Initial Status
+            </label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value as ContentStatus)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
+            >
+              <option value="draft">Draft (In progress)</option>
+              <option value="ready">Ready (Ready to publish)</option>
+              <option value="approved">Approved</option>
+              <option value="archived">Archived</option>
+            </select>
+          </div>
+        </div>
       </div>
 
       {activeTab === "edit" ? (
