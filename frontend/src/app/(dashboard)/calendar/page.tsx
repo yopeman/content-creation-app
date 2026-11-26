@@ -194,8 +194,8 @@ export default function CalendarPage() {
       )}
 
       {/* Filter Pills & Month Controls */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-1.5">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
           {(
             [
               { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-primary text-primary-foreground shadow-primary/20" },
@@ -209,7 +209,7 @@ export default function CalendarPage() {
               type="button"
               aria-pressed={statusFilter === tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition shrink-0 ${
                 statusFilter === tab.id
                   ? `${tab.activeClass} shadow-sm font-semibold`
                   : "bg-surface border border-border text-muted-foreground hover:text-foreground"
@@ -230,7 +230,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Month Navigation */}
-        <div className="flex items-center gap-2 self-start lg:self-auto">
+        <div className="flex items-center justify-between sm:justify-start gap-2 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => {
@@ -238,7 +238,7 @@ export default function CalendarPage() {
               setCurrentMonth(startOfMonth(now));
               setSelectedDay(now);
             }}
-            className="px-3 py-1.5 rounded-xl bg-surface border border-border hover:bg-surface-muted text-xs font-medium text-foreground transition"
+            className="px-3 py-1.5 rounded-xl bg-surface border border-border hover:bg-surface-muted text-xs font-medium text-foreground transition shrink-0"
           >
             Today
           </button>
@@ -252,7 +252,7 @@ export default function CalendarPage() {
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-3 text-xs font-semibold text-foreground min-w-[130px] text-center">
+            <span className="px-3 text-xs font-semibold text-foreground min-w-[120px] sm:min-w-[130px] text-center">
               {format(currentMonth, "MMMM yyyy")}
             </span>
             <button
@@ -276,9 +276,10 @@ export default function CalendarPage() {
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="py-2.5 px-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
+                className="py-2 sm:py-2.5 px-1 sm:px-2 text-center text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
               >
-                {day}
+                <span className="sm:hidden">{day.slice(0, 1)}</span>
+                <span className="hidden sm:inline">{day}</span>
               </div>
             ))}
           </div>
@@ -302,12 +303,12 @@ export default function CalendarPage() {
                   <div
                     key={dayKey}
                     onClick={() => setSelectedDay(day)}
-                    className={`group min-h-[116px] border-b border-r border-border p-1.5 flex flex-col gap-1 transition cursor-pointer ${
+                    className={`group min-h-[64px] sm:min-h-[96px] md:min-h-[116px] border-b border-r border-border p-1 sm:p-1.5 flex flex-col gap-0.5 sm:gap-1 transition cursor-pointer ${
                       inCurrentMonth ? "bg-surface" : "bg-surface-muted/40 text-subtle-foreground"
                     } ${isSelected ? "ring-1 ring-inset ring-primary bg-primary-soft/30" : "hover:bg-surface-muted"}`}
                   >
                     {/* Day Header */}
-                    <div className="flex items-center justify-between px-1">
+                    <div className="flex items-center justify-between px-0.5 sm:px-1">
                       <button
                         type="button"
                         onClick={(e) => {
@@ -315,7 +316,7 @@ export default function CalendarPage() {
                           setSelectedDay(day);
                         }}
                         aria-label={format(day, "PPPP")}
-                        className={`h-6 w-6 rounded-full text-xs font-medium flex items-center justify-center transition ${
+                        className={`h-5 w-5 sm:h-6 sm:w-6 rounded-full text-[11px] sm:text-xs font-medium flex items-center justify-center transition ${
                           today
                             ? "bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30"
                             : inCurrentMonth
@@ -334,14 +335,34 @@ export default function CalendarPage() {
                           openCreateForDate(day);
                         }}
                         aria-label={`Create post on ${format(day, "MMM d, yyyy")}`}
-                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
+                        className="hidden sm:flex opacity-0 group-hover:opacity-100 focus-visible:opacity-100 h-6 w-6 rounded-lg items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
                     </div>
 
-                    {/* Post Chips */}
-                    <div className="space-y-1 flex-1 min-w-0">
+                    {/* Mobile Post Dot Indicators */}
+                    <div className="flex md:hidden flex-wrap items-center justify-center gap-1 mt-1 px-0.5">
+                      {visibleEntries.map(({ post }) => {
+                        let dotColor = "bg-purple-500";
+                        if (post.status === "scheduled") dotColor = "bg-sky-500";
+                        else if (post.status === "published") dotColor = "bg-emerald-500";
+                        else if (post.status === "failed") dotColor = "bg-rose-500";
+                        return (
+                          <span
+                            key={`dot-${post._id}`}
+                            className={`h-1.5 w-1.5 rounded-full ${dotColor}`}
+                            title={`${post.status} post`}
+                          />
+                        );
+                      })}
+                      {overflowCount > 0 && (
+                        <span className="text-[9px] text-primary font-bold">+{overflowCount}</span>
+                      )}
+                    </div>
+
+                    {/* Desktop Post Chips */}
+                    <div className="hidden md:block space-y-1 flex-1 min-w-0">
                       {visibleEntries.map(({ post, date }) => {
                         const linkedContent = contentMap.get(post.content_id);
                         const platformCode = post.targets?.[0]?.platform_code;

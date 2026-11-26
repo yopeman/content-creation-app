@@ -20,7 +20,7 @@ import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { ProfileEditModal } from "@/components/layout/profile-edit-modal";
 import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 
-const navItems = [
+export const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
   { name: "Content Manager", href: "/contents", icon: FileText },
   { name: "AI Studio", href: "/studio", icon: Wand2, comingSoon: true },
@@ -36,7 +36,7 @@ export function Sidebar() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
-    <aside className="w-64 border-r border-border bg-surface flex flex-col shrink-0 h-full">
+    <aside className="hidden md:flex w-64 border-r border-border bg-surface flex-col shrink-0 h-full">
       {/* Brand Header */}
       <div className="h-16 shrink-0 flex items-center px-6 gap-3 border-b border-border">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20">

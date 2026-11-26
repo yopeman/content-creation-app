@@ -1132,7 +1132,7 @@ function ContentAdjusterForm({
       {/* Dispatch Modal */}
       {showDispatchModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <Send className="h-4 w-4 text-primary" />

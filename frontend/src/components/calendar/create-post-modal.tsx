@@ -216,9 +216,9 @@ export function CreatePostModal({
         onClose();
       }}
       {...({ closedby: "any" } as Record<string, string>)}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm max-h-[90dvh] overflow-y-auto"
     >
-      <form onSubmit={handleSubmit} className="p-6 space-y-5">
+      <form onSubmit={handleSubmit} className="p-4 sm:p-6 space-y-4 sm:space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h1 id={titleId} className="text-base font-bold text-foreground flex items-center gap-2">

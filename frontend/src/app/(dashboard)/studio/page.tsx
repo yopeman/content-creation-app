@@ -82,7 +82,7 @@ export default function StudioPage() {
       </div>
 
       {/* Main Generator Card */}
-      <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 shadow-xl space-y-5">
         <div>
           <label className="block text-xs font-semibold text-foreground mb-1.5">
             Content Topic or Prompt <span className="text-danger">*</span>

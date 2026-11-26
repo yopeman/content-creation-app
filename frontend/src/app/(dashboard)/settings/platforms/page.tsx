@@ -223,7 +223,7 @@ export default function PlatformSettingsPage() {
       {/* Connect Modal */}
       {isConnectOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-foreground">Connect Telegram Channel</h3>
             <p className="text-xs text-muted-foreground">
               Provide your bot token from @BotFather and your channel username. Make sure your bot is added as an administrator to the channel.
@@ -288,7 +288,7 @@ export default function PlatformSettingsPage() {
       {/* Edit Modal */}
       {editingPlatform && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <h3 className="text-base font-semibold text-foreground">Edit Telegram Connection</h3>
             <p className="text-xs text-muted-foreground">
               Update your bot token or channel ID for {editingPlatform.account_name}.

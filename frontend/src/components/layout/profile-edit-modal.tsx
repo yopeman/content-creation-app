@@ -307,10 +307,10 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
         if (dialogRef.current) dialogRef.current.returnValue = "";
         onClose();
       }}
-      className="bg-surface border border-border rounded-2xl shadow-2xl text-foreground w-full max-w-md m-auto p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+      className="bg-surface border border-border rounded-2xl shadow-2xl text-foreground w-[calc(100%-2rem)] max-w-md m-auto p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm max-h-[90dvh] overflow-y-auto"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+      <div className="flex items-center justify-between px-4 sm:px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
           <div className="h-8 w-8 rounded-lg bg-primary-soft border border-primary-border flex items-center justify-center text-primary">
             {activeTab === "profile" ? (
@@ -337,7 +337,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
       <div
         role="tablist"
         aria-label="Account settings sections"
-        className="flex gap-1 px-6 pt-3 border-b border-border"
+        className="flex gap-1 px-4 sm:px-6 pt-3 border-b border-border"
       >
         <button
           id={profileTabId}

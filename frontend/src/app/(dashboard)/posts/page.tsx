@@ -268,7 +268,7 @@ export default function PostsPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-2.5 w-full sm:w-auto">
           <button
             type="button"
             onClick={() => setIsCreateOpen(true)}
@@ -608,7 +608,7 @@ export default function PostsPage() {
                 </div>
 
                 {/* Post Actions Toolbar */}
-                <div className="flex flex-wrap items-center gap-2 shrink-0">
+                <div className="flex flex-wrap items-center gap-2 pt-3 sm:pt-0 border-t sm:border-t-0 border-border w-full sm:w-auto justify-start sm:justify-end shrink-0">
                   {/* Publish Now (for Draft or Scheduled) */}
                   {(isDraft || isScheduled) && (
                     <button
@@ -709,7 +709,7 @@ export default function PostsPage() {
       {/* Reschedule Modal */}
       {rescheduleModalPost && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4 max-h-[90dvh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <h3 className="text-base font-bold text-foreground flex items-center gap-2">
                 <CalendarClock className="h-4 w-4 text-sky-400" />
