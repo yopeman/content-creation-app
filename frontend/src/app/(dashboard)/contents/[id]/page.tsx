@@ -107,11 +107,17 @@ function ContentAdjusterForm({
 
   // Dispatch modal state
   const [showDispatchModal, setShowDispatchModal] = useState(false);
-  const [selectedPlatformId, setSelectedPlatformId] = useState<string>("");
+  const [selectedPlatformIds, setSelectedPlatformIds] = useState<string[]>([]);
   const [isScheduledMode, setIsScheduledMode] = useState<boolean>(false);
   const [scheduledDateTime, setScheduledDateTime] = useState<string>("");
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
+
+  const togglePlatform = (id: string) => {
+    setSelectedPlatformIds((prev) =>
+      prev.includes(id) ? prev.filter((p) => p !== id) : [...prev, id]
+    );
+  };
 
   // Block management functions
   const addBlock = (type: ContentType) => {
@@ -290,33 +296,37 @@ function ContentAdjusterForm({
   // Dispatch post mutation
   const dispatchMutation = useMutation({
     mutationFn: async ({
-      platformId,
+      platformIds,
       isScheduled,
       scheduledAt,
     }: {
-      platformId: string;
+      platformIds: string[];
       isScheduled: boolean;
       scheduledAt?: string;
     }) => {
+      const selectedPlatforms = platforms.filter((p) => platformIds.includes(p._id));
       const res = await apiClient.post("/posts", {
         content_id: contentId,
         status: isScheduled ? "scheduled" : "published",
         scheduled_at: isScheduled ? scheduledAt : undefined,
-        targets: [
-          {
-            platform_id: platformId,
-            platform_code: "TG",
-            scheduled_at: isScheduled ? scheduledAt : undefined,
-          },
-        ],
+        targets: selectedPlatforms.map((p) => ({
+          platform_id: p._id,
+          platform_code: p.code,
+          scheduled_at: isScheduled ? scheduledAt : undefined,
+        })),
       });
       return res.data;
     },
     onSuccess: (data) => {
       if (data.status === "scheduled") {
         setDispatchSuccess("Post scheduled! Background worker will automatically dispatch it at the chosen time.");
+      } else if (data.status === "partial") {
+        setDispatchSuccess("Post partially dispatched. Some channels published while others failed.");
       } else {
-        setDispatchSuccess("All content items dispatched and published to Telegram successfully!");
+        const targetCount = data.targets?.length || 1;
+        setDispatchSuccess(
+          `All content items dispatched and published to ${targetCount} channel(s) successfully!`
+        );
       }
       setDispatchError(null);
       queryClient.invalidateQueries({ queryKey: ["posts"] });
@@ -371,7 +381,21 @@ function ContentAdjusterForm({
           {/* Dispatch Button */}
           <button
             type="button"
-            onClick={() => setShowDispatchModal(true)}
+            onClick={() => {
+              const connected = platforms.filter((p) => p.status === "connected");
+              setSelectedPlatformIds(
+                connected.length > 0
+                  ? [connected[0]._id]
+                  : platforms[0]
+                  ? [platforms[0]._id]
+                  : []
+              );
+              setIsScheduledMode(false);
+              setScheduledDateTime("");
+              setDispatchError(null);
+              setDispatchSuccess(null);
+              setShowDispatchModal(true);
+            }}
             className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-soft hover:bg-primary/20 text-primary border border-primary-border text-xs font-medium transition"
           >
             <Send className="h-3.5 w-3.5" />
@@ -1239,9 +1263,26 @@ function ContentAdjusterForm({
             )}
 
             <div>
-              <label className="block text-xs font-medium text-foreground mb-1.5">
-                Select Connected Destination Platform
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label className="block text-xs font-medium text-foreground">
+                  Select Destination Channel(s)
+                </label>
+                {platforms.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedPlatformIds.length === platforms.length) {
+                        setSelectedPlatformIds([]);
+                      } else {
+                        setSelectedPlatformIds(platforms.map((p) => p._id));
+                      }
+                    }}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    {selectedPlatformIds.length === platforms.length ? "Deselect All" : "Select All"}
+                  </button>
+                )}
+              </div>
               {platforms.length === 0 ? (
                 <div className="text-xs text-muted-foreground p-3 bg-surface-muted rounded-xl border border-border">
                   No platforms connected.{" "}
@@ -1250,17 +1291,49 @@ function ContentAdjusterForm({
                   </Link>
                 </div>
               ) : (
-                <select
-                  value={selectedPlatformId || (platforms[0]?._id ?? "")}
-                  onChange={(e) => setSelectedPlatformId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
-                >
-                  {platforms.map((p) => (
-                    <option key={p._id} value={p._id}>
-                      {p.account_name || "Telegram Channel"} ({p.code})
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto p-1">
+                  {platforms.map((p) => {
+                    const isSelected = selectedPlatformIds.includes(p._id);
+                    return (
+                      <button
+                        key={p._id}
+                        type="button"
+                        aria-pressed={isSelected}
+                        onClick={() => togglePlatform(p._id)}
+                        className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 ${
+                          isSelected
+                            ? "bg-primary-soft border-primary-border text-foreground"
+                            : "bg-surface-muted border-border text-foreground hover:border-border-strong"
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-400">
+                              {p.code}
+                            </span>
+                            <span className="text-xs font-medium truncate">
+                              {p.account_name || p.platform_account_id || p.code}
+                            </span>
+                          </div>
+                          {p.platform_account_id && (
+                            <p className="text-[10px] text-muted-foreground truncate mt-0.5">
+                              {p.platform_account_id}
+                            </p>
+                          )}
+                        </div>
+                        <span
+                          className={`h-4 w-4 rounded flex items-center justify-center shrink-0 border ${
+                            isSelected
+                              ? "bg-primary border-primary text-primary-foreground"
+                              : "border-border bg-surface"
+                          }`}
+                        >
+                          {isSelected && <Check className="h-3 w-3 stroke-[3]" />}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               )}
             </div>
 
@@ -1274,14 +1347,21 @@ function ContentAdjusterForm({
               </button>
               <button
                 type="button"
-                disabled={platforms.length === 0 || dispatchMutation.isPending || (isScheduledMode && !scheduledDateTime)}
+                disabled={
+                  platforms.length === 0 ||
+                  selectedPlatformIds.length === 0 ||
+                  dispatchMutation.isPending ||
+                  (isScheduledMode && !scheduledDateTime)
+                }
                 onClick={() => {
-                  const platId = selectedPlatformId || platforms[0]?._id;
-                  if (platId) {
+                  if (selectedPlatformIds.length > 0) {
                     dispatchMutation.mutate({
-                      platformId: platId,
+                      platformIds: selectedPlatformIds,
                       isScheduled: isScheduledMode,
-                      scheduledAt: isScheduledMode && scheduledDateTime ? new Date(scheduledDateTime).toISOString() : undefined,
+                      scheduledAt:
+                        isScheduledMode && scheduledDateTime
+                          ? new Date(scheduledDateTime).toISOString()
+                          : undefined,
                     });
                   }
                 }}
@@ -1298,7 +1378,9 @@ function ContentAdjusterForm({
                       ? "Scheduling..."
                       : "Publishing..."
                     : isScheduledMode
-                    ? "Schedule Post"
+                    ? `Schedule Post (${selectedPlatformIds.length})`
+                    : selectedPlatformIds.length > 1
+                    ? `Publish to ${selectedPlatformIds.length} Channels Now`
                     : "Publish All Items Now"}
                 </span>
               </button>
