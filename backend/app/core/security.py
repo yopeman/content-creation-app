@@ -27,7 +27,7 @@ def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] =
     return encoded_jwt
 
 
-def create_claim_token(user_id: str, content_id: str, expires_delta: Optional[timedelta] = None) -> str:
+def create_claim_token(user_id: str, content_id: Optional[str] = None, expires_delta: Optional[timedelta] = None) -> str:
     if expires_delta:
         expire = datetime.now(timezone.utc) + expires_delta
     else:
@@ -35,9 +35,10 @@ def create_claim_token(user_id: str, content_id: str, expires_delta: Optional[ti
     to_encode = {
         "exp": expire,
         "sub": str(user_id),
-        "content_id": str(content_id),
         "type": "claim_ticket",
     }
+    if content_id:
+        to_encode["content_id"] = str(content_id)
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
 
 

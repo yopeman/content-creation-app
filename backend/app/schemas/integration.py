@@ -25,11 +25,11 @@ class IntegrationContentData(BaseModel):
 class IngestContentRequest(BaseModel):
     name: Optional[str] = None
     email: EmailStr
-    content: IntegrationContentData
+    content: Optional[IntegrationContentData] = None
 
 
 class IngestContentResponse(BaseModel):
-    content_id: str
+    content_id: Optional[str] = None
     user_id: str
     is_new_user: bool
     claim_token: str
@@ -49,5 +49,5 @@ class ClaimTicketResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserResponse
-    content_id: str
+    content_id: Optional[str] = None
     onboarding: OnboardingStatus

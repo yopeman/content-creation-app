@@ -57,11 +57,26 @@ async def verify_integration_api_key(
     include_in_schema=False,
     dependencies=[Depends(verify_integration_api_key)],
 )
+@router.post(
+    "/users",
+    response_model=IngestContentResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Provision or Authenticate User from External Project",
+    dependencies=[Depends(verify_integration_api_key)],
+)
+@router.post(
+    "/user",
+    response_model=IngestContentResponse,
+    status_code=status.HTTP_201_CREATED,
+    include_in_schema=False,
+    dependencies=[Depends(verify_integration_api_key)],
+)
 async def ingest_content(payload: IngestContentRequest):
-    """Ingests content from external projects.
+    """Ingests content or user from external projects.
 
     Checks if user with email exists. If not, auto-provisions user with needs_password=True.
-    Creates content and returns a view link with claim ticket.
+    If content is provided, creates content and returns a view link to /contents/{id}.
+    If content is omitted, returns a view link directly to / (dashboard root).
     """
     clean_email = payload.email.strip().lower()
     user = await User.find_one(User.email == clean_email, User.deleted_at == None)  # noqa: E711
@@ -81,38 +96,44 @@ async def ingest_content(payload: IngestContentRequest):
         await user.insert()
         is_new_user = True
 
-    # Build Content details
-    content_details = [
-        ContentDetail(
-            type=item.type,
-            path=item.path,
-            text=item.text,
-            script=item.script,
-            order=item.order or (idx + 1),
-            mime_type=item.mime_type,
-            file_size_bytes=item.file_size_bytes,
-            duration_seconds=item.duration_seconds,
-            dimensions=item.dimensions,
-        )
-        for idx, item in enumerate(payload.content.details)
-    ]
+    content_id = None
+    if payload.content:
+        # Build Content details
+        content_details = [
+            ContentDetail(
+                type=item.type,
+                path=item.path,
+                text=item.text,
+                script=item.script,
+                order=item.order or (idx + 1),
+                mime_type=item.mime_type,
+                file_size_bytes=item.file_size_bytes,
+                duration_seconds=item.duration_seconds,
+                dimensions=item.dimensions,
+            )
+            for idx, item in enumerate(payload.content.details)
+        ]
 
-    content = Content(
-        user_id=user.id,
-        title=payload.content.title,
-        status=payload.content.status,
-        details=content_details,
-    )
-    await content.insert()
+        content = Content(
+            user_id=user.id,
+            title=payload.content.title,
+            status=payload.content.status,
+            details=content_details,
+        )
+        await content.insert()
+        content_id = str(content.id)
 
     # Generate claim token
-    claim_token = create_claim_token(user_id=str(user.id), content_id=str(content.id))
+    claim_token = create_claim_token(user_id=str(user.id), content_id=content_id)
 
     frontend_base = settings.FRONTEND_URL.rstrip("/")
-    view_url = f"{frontend_base}/contents/{content.id}?claim_token={claim_token}"
+    if content_id:
+        view_url = f"{frontend_base}/contents/{content_id}?claim_token={claim_token}"
+    else:
+        view_url = f"{frontend_base}/?claim_token={claim_token}"
 
     return IngestContentResponse(
-        content_id=str(content.id),
+        content_id=content_id,
         user_id=str(user.id),
         is_new_user=is_new_user,
         claim_token=claim_token,
@@ -137,7 +158,7 @@ async def claim_ticket(payload: ClaimTicketRequest):
 
     user_id_str = decoded.get("sub")
     content_id_str = decoded.get("content_id")
-    if not user_id_str or not content_id_str:
+    if not user_id_str:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Malformed claim token.")
 
     user = await User.find_one(
@@ -158,6 +179,16 @@ async def claim_ticket(payload: ClaimTicketRequest):
 
     onboarding = OnboardingStatus(
         needs_password=bool(user.needs_password),
+        has_connected_channel=active_platforms_count > 0,
+    )
+
+    return ClaimTicketResponse(
+        access_token=access_token,
+        token_type="bearer",
+        user=UserResponse.model_validate(user),
+        content_id=content_id_str,
+        onboarding=onboarding,
+    )
         has_connected_channel=active_platforms_count > 0,
     )
 
