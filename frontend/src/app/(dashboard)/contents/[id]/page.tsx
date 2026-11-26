@@ -64,7 +64,7 @@ export default function ContentAdjusterPage() {
 
   if (loadingContent || !content) {
     return (
-      <div className="h-64 flex flex-col items-center justify-center text-neutral-500">
+      <div className="h-64 flex flex-col items-center justify-center text-subtle-foreground">
         <Loader2 className="h-6 w-6 animate-spin mb-2" />
         <span className="text-xs">Loading content details...</span>
       </div>
@@ -339,17 +339,17 @@ function ContentAdjusterForm({
         <div className="flex items-center gap-3">
           <Link
             href="/contents"
-            className="p-2 rounded-xl bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-2 rounded-xl bg-surface border border-border text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
           >
             <ArrowLeft className="h-4 w-4" />
           </Link>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-bold text-white tracking-tight truncate max-w-md">
+              <h1 className="text-2xl font-bold text-foreground tracking-tight truncate max-w-md">
                 Adjust: {title || "Untitled Content"}
               </h1>
             </div>
-            <p className="text-xs text-neutral-400 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Updated {formatDate(content.updated_at)} • {blocks.length} multimodal block(s)
             </p>
           </div>
@@ -360,7 +360,7 @@ function ContentAdjusterForm({
           {/* AI Studio Link */}
           <Link
             href={`/studio/${content._id}`}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium border border-neutral-700 transition"
+            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
             title="Refine with AI Studio"
           >
             <Wand2 className="h-3.5 w-3.5 text-purple-400" />
@@ -372,21 +372,21 @@ function ContentAdjusterForm({
           <button
             type="button"
             onClick={() => setShowDispatchModal(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-primary-soft hover:bg-primary/20 text-primary border border-primary-border text-xs font-medium transition"
           >
             <Send className="h-3.5 w-3.5" />
             <span>Dispatch</span>
           </button>
 
           {/* View Tab Toggle */}
-          <div className="inline-flex rounded-xl bg-neutral-900 border border-neutral-800 p-1">
+          <div className="inline-flex rounded-xl bg-surface border border-border p-1">
             <button
               type="button"
               onClick={() => setActiveTab("edit")}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "edit"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-primary text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               Adjust
@@ -396,8 +396,8 @@ function ContentAdjusterForm({
               onClick={() => setActiveTab("preview")}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition ${
                 activeTab === "preview"
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-neutral-400 hover:text-white"
+                  ? "bg-primary text-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               <Eye className="h-3.5 w-3.5" />
@@ -410,7 +410,7 @@ function ContentAdjusterForm({
             type="button"
             disabled={saveMutation.isPending}
             onClick={() => saveMutation.mutate()}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 disabled:opacity-50 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
           >
             {saveMutation.isPending ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -431,7 +431,7 @@ function ContentAdjusterForm({
       </div>
 
       {saveError && (
-        <div className="p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+        <div className="p-3.5 rounded-xl bg-danger-soft border border-danger/20 text-danger text-xs flex items-center gap-2">
           <AlertCircle className="h-4 w-4 shrink-0" />
           <span>{saveError}</span>
         </div>
@@ -445,10 +445,10 @@ function ContentAdjusterForm({
       )}
 
       {/* Main Settings Card */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-sm space-y-5">
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-sm space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="sm:col-span-2">
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
               Content Title
             </label>
             <input
@@ -456,18 +456,18 @@ function ContentAdjusterForm({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Weekly Product Highlights"
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
               Current Status
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as ContentStatus)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
             >
               <option value="draft">Draft</option>
               <option value="ready">Ready (Ready to Publish)</option>
@@ -482,9 +482,9 @@ function ContentAdjusterForm({
         /* Blocks Adjustment Section */
         <div className="space-y-5">
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
               <span>Attached Multimodal Blocks</span>
-              <span className="px-2 py-0.5 rounded-full text-[11px] bg-neutral-800 text-neutral-400 border border-neutral-700">
+              <span className="px-2 py-0.5 rounded-full text-[11px] bg-surface-muted text-muted-foreground border border-border">
                 {blocks.length}
               </span>
             </h2>
@@ -494,16 +494,16 @@ function ContentAdjusterForm({
               <button
                 type="button"
                 onClick={() => addBlock("text")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium border border-neutral-700 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
               >
-                <Plus className="h-3.5 w-3.5 text-indigo-400" />
-                <FileText className="h-3.5 w-3.5 text-indigo-400" />
+                <Plus className="h-3.5 w-3.5 text-primary" />
+                <FileText className="h-3.5 w-3.5 text-primary" />
                 <span>Text Block</span>
               </button>
               <button
                 type="button"
                 onClick={() => addBlock("image")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium border border-neutral-700 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
               >
                 <Plus className="h-3.5 w-3.5 text-pink-400" />
                 <ImageIcon className="h-3.5 w-3.5 text-pink-400" />
@@ -512,7 +512,7 @@ function ContentAdjusterForm({
               <button
                 type="button"
                 onClick={() => addBlock("audio")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium border border-neutral-700 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
               >
                 <Plus className="h-3.5 w-3.5 text-emerald-400" />
                 <Mic className="h-3.5 w-3.5 text-emerald-400" />
@@ -521,7 +521,7 @@ function ContentAdjusterForm({
               <button
                 type="button"
                 onClick={() => addBlock("video")}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium border border-neutral-700 transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
               >
                 <Plus className="h-3.5 w-3.5 text-cyan-400" />
                 <Video className="h-3.5 w-3.5 text-cyan-400" />
@@ -539,16 +539,16 @@ function ContentAdjusterForm({
               return (
                 <div
                   key={block.id}
-                  className="rounded-2xl bg-neutral-900 border border-neutral-800 p-5 space-y-4 shadow-sm"
+                  className="rounded-2xl bg-surface border border-border p-5 space-y-4 shadow-sm"
                 >
                   {/* Block Header */}
-                  <div className="flex items-center justify-between border-b border-neutral-800 pb-3">
+                  <div className="flex items-center justify-between border-b border-border pb-3">
                     <div className="flex items-center gap-2">
-                      <span className="h-6 w-6 rounded-lg bg-neutral-800 text-neutral-400 text-xs flex items-center justify-center font-bold">
+                      <span className="h-6 w-6 rounded-lg bg-surface-muted text-muted-foreground text-xs flex items-center justify-center font-bold">
                         {index + 1}
                       </span>
                       {block.type === "text" && (
-                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-indigo-400">
+                        <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary">
                           <FileText className="h-4 w-4" /> Text / Copywriting Block
                         </span>
                       )}
@@ -574,7 +574,7 @@ function ContentAdjusterForm({
                         type="button"
                         disabled={isFirst}
                         onClick={() => moveBlock(index, "up")}
-                        className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 rounded transition"
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded transition"
                         title="Move Up"
                       >
                         <ArrowUp className="h-4 w-4" />
@@ -583,7 +583,7 @@ function ContentAdjusterForm({
                         type="button"
                         disabled={isLast}
                         onClick={() => moveBlock(index, "down")}
-                        className="p-1 text-neutral-400 hover:text-white disabled:opacity-30 rounded transition"
+                        className="p-1 text-muted-foreground hover:text-foreground disabled:opacity-30 rounded transition"
                         title="Move Down"
                       >
                         <ArrowDown className="h-4 w-4" />
@@ -591,7 +591,7 @@ function ContentAdjusterForm({
                       <button
                         type="button"
                         onClick={() => removeBlock(block.id)}
-                        className="p-1 text-neutral-500 hover:text-red-400 rounded transition ml-1"
+                        className="p-1 text-subtle-foreground hover:text-danger rounded transition ml-1"
                         title="Remove Block"
                       >
                         <Trash2 className="h-4 w-4" />
@@ -603,7 +603,7 @@ function ContentAdjusterForm({
                   {block.type === "text" && (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-neutral-300 mb-1">
+                        <label className="block text-xs font-medium text-foreground mb-1">
                           Copywriting / Caption Body
                         </label>
                         <textarea
@@ -611,7 +611,7 @@ function ContentAdjusterForm({
                           value={block.text || ""}
                           onChange={(e) => updateBlock(block.id, { text: e.target.value })}
                           placeholder="Adjust caption, headlines, hashtags..."
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/70 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                       </div>
                     </div>
@@ -621,17 +621,17 @@ function ContentAdjusterForm({
                     <div className="space-y-4">
                       {/* Source Selection Header */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <label className="block text-xs font-medium text-neutral-300">
+                        <label className="block text-xs font-medium text-foreground">
                           Image Source
                         </label>
-                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                        <div className="inline-flex rounded-lg bg-surface border border-border p-0.5 text-xs">
                           <button
                             type="button"
                             onClick={() => updateBlock(block.id, { sourceType: "upload" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType !== "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <UploadCloud className="h-3.5 w-3.5" />
@@ -642,8 +642,8 @@ function ContentAdjusterForm({
                             onClick={() => updateBlock(block.id, { sourceType: "url" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType === "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <Link2 className="h-3.5 w-3.5" />
@@ -655,7 +655,7 @@ function ContentAdjusterForm({
                       {block.sourceType === "url" ? (
                         <div className="space-y-3">
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
                               <Link2 className="h-4 w-4" />
                             </div>
                             <input
@@ -663,24 +663,24 @@ function ContentAdjusterForm({
                               value={block.path || ""}
                               onChange={(e) => handleUrlInput(block.id, e.target.value)}
                               placeholder="https://example.com/images/sample.jpg"
-                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-pink-500 transition"
                             />
                           </div>
 
                           {block.path && (
-                            <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-neutral-900/60 border border-neutral-800 rounded-xl">
-                              <div className="w-full sm:w-48 h-32 relative rounded-lg overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-3 bg-surface/80 border border-border rounded-xl">
+                              <div className="w-full sm:w-48 h-32 relative rounded-lg overflow-hidden border border-border bg-background shrink-0">
                                 <img
                                   src={getMediaUrl(block.path)}
                                   alt="Image URL preview"
                                   className="w-full h-full object-cover"
                                 />
                               </div>
-                              <div className="text-[11px] text-neutral-400 space-y-1">
+                              <div className="text-[11px] text-muted-foreground space-y-1">
                                 <p className="text-pink-400 font-medium flex items-center gap-1.5">
                                   <Link2 className="h-3.5 w-3.5" /> Direct URL Linked
                                 </p>
-                                <p className="text-white font-medium break-all">{block.text || block.path}</p>
+                                <p className="text-foreground font-medium break-all">{block.text || block.path}</p>
                               </div>
                             </div>
                           )}
@@ -699,7 +699,7 @@ function ContentAdjusterForm({
                                 const f = e.dataTransfer.files?.[0];
                                 if (f && !block.isUploading) handleUpload(block.id, f, "image");
                               }}
-                              className="flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-pink-500/50 rounded-2xl bg-neutral-850/50 hover:bg-pink-500/5 cursor-pointer transition"
+                              className="flex-1 w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-border hover:border-pink-500 rounded-2xl bg-surface-muted/50 hover:bg-pink-500/5 cursor-pointer transition"
                             >
                               {block.isUploading ? (
                                 <div className="flex items-center gap-2 text-xs text-pink-400">
@@ -709,10 +709,10 @@ function ContentAdjusterForm({
                               ) : (
                                 <div className="flex flex-col items-center text-center">
                                   <UploadCloud className="h-6 w-6 text-pink-400 mb-1.5" />
-                                  <span className="text-xs font-medium text-neutral-200">
+                                  <span className="text-xs font-medium text-foreground">
                                     Click to upload image or drag & drop
                                   </span>
-                                  <span className="text-[10px] text-neutral-400 mt-0.5">
+                                  <span className="text-[10px] text-muted-foreground mt-0.5">
                                     PNG, JPG, WEBP, GIF (Max 20MB) • Auto-checks binary signature
                                   </span>
                                 </div>
@@ -732,7 +732,7 @@ function ContentAdjusterForm({
 
                             {/* Image Preview if uploaded */}
                             {block.path && (
-                              <div className="w-full sm:w-48 h-32 relative rounded-xl overflow-hidden border border-neutral-700 bg-neutral-950 shrink-0">
+                              <div className="w-full sm:w-48 h-32 relative rounded-xl overflow-hidden border border-border bg-background shrink-0">
                                 <img
                                   src={getMediaUrl(block.path)}
                                   alt="Uploaded preview"
@@ -743,16 +743,16 @@ function ContentAdjusterForm({
                           </div>
 
                           {block.uploadError && (
-                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                            <p className="text-xs text-danger mt-2 flex items-center gap-1.5">
                               <AlertCircle className="h-3.5 w-3.5" />
                               <span>{block.uploadError}</span>
                             </p>
                           )}
 
                           {block.path && (
-                            <div className="mt-2 text-[11px] text-neutral-400 flex items-center gap-2">
+                            <div className="mt-2 text-[11px] text-muted-foreground flex items-center gap-2">
                               <span className="text-emerald-400 font-medium">Uploaded:</span>
-                              <span className="truncate max-w-xs text-white font-medium">{block.text || block.path.split("/").pop()}</span>
+                              <span className="truncate max-w-xs text-foreground font-medium">{block.text || block.path.split("/").pop()}</span>
                               {block.file_size_bytes && (
                                 <span>({formatBytes(block.file_size_bytes)})</span>
                               )}
@@ -767,17 +767,17 @@ function ContentAdjusterForm({
                     <div className="space-y-4">
                       {/* Source Selection Header */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <label className="block text-xs font-medium text-neutral-300">
+                        <label className="block text-xs font-medium text-foreground">
                           Audio Source
                         </label>
-                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                        <div className="inline-flex rounded-lg bg-surface border border-border p-0.5 text-xs">
                           <button
                             type="button"
                             onClick={() => updateBlock(block.id, { sourceType: "upload" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType !== "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <UploadCloud className="h-3.5 w-3.5" />
@@ -788,8 +788,8 @@ function ContentAdjusterForm({
                             onClick={() => updateBlock(block.id, { sourceType: "url" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType === "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <Link2 className="h-3.5 w-3.5" />
@@ -801,7 +801,7 @@ function ContentAdjusterForm({
                       {block.sourceType === "url" ? (
                         <div className="space-y-3">
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
                               <Link2 className="h-4 w-4" />
                             </div>
                             <input
@@ -809,16 +809,16 @@ function ContentAdjusterForm({
                               value={block.path || ""}
                               onChange={(e) => handleUrlInput(block.id, e.target.value)}
                               placeholder="https://example.com/audio/podcast.mp3"
-                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 transition"
                             />
                           </div>
 
                           {block.path && (
-                            <div className="p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                            <div className="p-3 bg-surface-muted border border-border rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-foreground">
                                 <div className="flex items-center gap-2">
                                   <span className="text-emerald-400 font-medium">Linked Track:</span>
-                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                  <span className="text-foreground font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
                                 </div>
                               </div>
                               <audio
@@ -842,7 +842,7 @@ function ContentAdjusterForm({
                               const f = e.dataTransfer.files?.[0];
                               if (f && !block.isUploading) handleUpload(block.id, f, "audio");
                             }}
-                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-emerald-500/50 rounded-2xl bg-neutral-850/50 hover:bg-emerald-500/5 cursor-pointer transition"
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-border hover:border-emerald-500 rounded-2xl bg-surface-muted/50 hover:bg-emerald-500/5 cursor-pointer transition"
                           >
                             {block.isUploading ? (
                               <div className="flex items-center gap-2 text-xs text-emerald-400">
@@ -852,10 +852,10 @@ function ContentAdjusterForm({
                             ) : (
                               <div className="flex flex-col items-center text-center">
                                 <UploadCloud className="h-6 w-6 text-emerald-400 mb-1.5" />
-                                <span className="text-xs font-medium text-neutral-200">
+                                <span className="text-xs font-medium text-foreground">
                                   Click to upload voiceover or podcast audio
                                 </span>
-                                <span className="text-[10px] text-neutral-400 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground mt-0.5">
                                   MP3, WAV, OGG, M4A (Max 50MB) • Supports direct audio playback
                                 </span>
                               </div>
@@ -874,18 +874,18 @@ function ContentAdjusterForm({
                           </label>
 
                           {block.uploadError && (
-                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                            <p className="text-xs text-danger mt-2 flex items-center gap-1.5">
                               <AlertCircle className="h-3.5 w-3.5" />
                               <span>{block.uploadError}</span>
                             </p>
                           )}
 
                           {block.path && (
-                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                            <div className="mt-3 p-3 bg-surface-muted border border-border rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-foreground">
                                 <div className="flex items-center gap-2">
                                   <span className="text-emerald-400 font-medium">Uploaded Track:</span>
-                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                  <span className="text-foreground font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
                                 </div>
                                 {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
                               </div>
@@ -905,17 +905,17 @@ function ContentAdjusterForm({
                     <div className="space-y-4">
                       {/* Source Selection Header */}
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <label className="block text-xs font-medium text-neutral-300">
+                        <label className="block text-xs font-medium text-foreground">
                           Video Source
                         </label>
-                        <div className="inline-flex rounded-lg bg-neutral-900 border border-neutral-800 p-0.5 text-xs">
+                        <div className="inline-flex rounded-lg bg-surface border border-border p-0.5 text-xs">
                           <button
                             type="button"
                             onClick={() => updateBlock(block.id, { sourceType: "upload" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType !== "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <UploadCloud className="h-3.5 w-3.5" />
@@ -926,8 +926,8 @@ function ContentAdjusterForm({
                             onClick={() => updateBlock(block.id, { sourceType: "url" })}
                             className={`flex items-center gap-1.5 px-3 py-1 rounded-md font-medium transition ${
                               block.sourceType === "url"
-                                ? "bg-neutral-800 text-white shadow-sm"
-                                : "text-neutral-400 hover:text-neutral-200"
+                                ? "bg-surface-muted text-foreground shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                             }`}
                           >
                             <Link2 className="h-3.5 w-3.5" />
@@ -939,7 +939,7 @@ function ContentAdjusterForm({
                       {block.sourceType === "url" ? (
                         <div className="space-y-3">
                           <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-neutral-400">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-muted-foreground">
                               <Link2 className="h-4 w-4" />
                             </div>
                             <input
@@ -947,16 +947,16 @@ function ContentAdjusterForm({
                               value={block.path || ""}
                               onChange={(e) => handleUrlInput(block.id, e.target.value)}
                               placeholder="https://example.com/videos/promo.mp4"
-                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-neutral-850 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
+                              className="w-full pl-10 pr-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500 transition"
                             />
                           </div>
 
                           {block.path && (
-                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                            <div className="mt-3 p-3 bg-surface-muted border border-border rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-foreground">
                                 <div className="flex items-center gap-2">
                                   <span className="text-cyan-400 font-medium">Linked Video:</span>
-                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                  <span className="text-foreground font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
                                 </div>
                               </div>
                               <video
@@ -980,7 +980,7 @@ function ContentAdjusterForm({
                               const f = e.dataTransfer.files?.[0];
                               if (f && !block.isUploading) handleUpload(block.id, f, "video");
                             }}
-                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-neutral-700 hover:border-cyan-500/50 rounded-2xl bg-neutral-850/50 hover:bg-cyan-500/5 cursor-pointer transition"
+                            className="w-full flex flex-col items-center justify-center p-6 border-2 border-dashed border-border hover:border-cyan-500 rounded-2xl bg-surface-muted/50 hover:bg-cyan-500/5 cursor-pointer transition"
                           >
                             {block.isUploading ? (
                               <div className="flex items-center gap-2 text-xs text-cyan-400">
@@ -990,10 +990,10 @@ function ContentAdjusterForm({
                             ) : (
                               <div className="flex flex-col items-center text-center">
                                 <UploadCloud className="h-6 w-6 text-cyan-400 mb-1.5" />
-                                <span className="text-xs font-medium text-neutral-200">
+                                <span className="text-xs font-medium text-foreground">
                                   Click to upload video reel or short
                                 </span>
-                                <span className="text-[10px] text-neutral-400 mt-0.5">
+                                <span className="text-[10px] text-muted-foreground mt-0.5">
                                   MP4, MOV, WebM (Max 200MB) • Streamable container
                                 </span>
                               </div>
@@ -1012,18 +1012,18 @@ function ContentAdjusterForm({
                           </label>
 
                           {block.uploadError && (
-                            <p className="text-xs text-red-400 mt-2 flex items-center gap-1.5">
+                            <p className="text-xs text-danger mt-2 flex items-center gap-1.5">
                               <AlertCircle className="h-3.5 w-3.5" />
                               <span>{block.uploadError}</span>
                             </p>
                           )}
 
                           {block.path && (
-                            <div className="mt-3 p-3 bg-neutral-800/60 border border-neutral-700/60 rounded-xl space-y-2">
-                              <div className="flex items-center justify-between text-[11px] text-neutral-300">
+                            <div className="mt-3 p-3 bg-surface-muted border border-border rounded-xl space-y-2">
+                              <div className="flex items-center justify-between text-[11px] text-foreground">
                                 <div className="flex items-center gap-2">
                                   <span className="text-cyan-400 font-medium">Uploaded Video:</span>
-                                  <span className="text-white font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
+                                  <span className="text-foreground font-medium truncate max-w-xs">{block.text || block.path.split("/").pop()}</span>
                                 </div>
                                 {block.file_size_bytes && <span>{formatBytes(block.file_size_bytes)}</span>}
                               </div>
@@ -1044,10 +1044,10 @@ function ContentAdjusterForm({
           </div>
 
           {/* Delete Danger Zone */}
-          <div className="pt-6 border-t border-neutral-800 flex justify-between items-center">
+          <div className="pt-6 border-t border-border flex justify-between items-center">
             <div>
-              <p className="text-xs font-medium text-red-400">Delete this Content</p>
-              <p className="text-[11px] text-neutral-500">
+              <p className="text-xs font-medium text-danger">Delete this Content</p>
+              <p className="text-[11px] text-subtle-foreground">
                 Permanently archive this content and remove it from lists.
               </p>
             </div>
@@ -1058,7 +1058,7 @@ function ContentAdjusterForm({
                   deleteMutation.mutate();
                 }
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-semibold transition"
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-danger-soft hover:bg-red-500/20 text-danger border border-danger/20 text-xs font-semibold transition"
             >
               <Trash2 className="h-3.5 w-3.5" />
               <span>Delete Content</span>
@@ -1068,19 +1068,19 @@ function ContentAdjusterForm({
       ) : (
         /* Live Social Feed Preview */
         <div className="space-y-4">
-          <h2 className="text-sm font-bold text-white flex items-center gap-2">
-            <Eye className="h-4 w-4 text-indigo-400" />
+          <h2 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <Eye className="h-4 w-4 text-primary" />
             <span>Live Social Post Assembly Preview</span>
           </h2>
 
-          <div className="max-w-md mx-auto bg-neutral-900 border border-neutral-800 rounded-3xl overflow-hidden shadow-2xl p-5 space-y-4">
+          <div className="max-w-md mx-auto bg-surface border border-border rounded-3xl overflow-hidden shadow-2xl p-5 space-y-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm">
+              <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-foreground font-bold text-sm">
                 Y
               </div>
               <div>
-                <p className="text-sm font-bold text-white">{title || "Untitled Content"}</p>
-                <p className="text-[11px] text-neutral-400">Social Channel • {formatDate(content.created_at)}</p>
+                <p className="text-sm font-bold text-foreground">{title || "Untitled Content"}</p>
+                <p className="text-[11px] text-muted-foreground">Social Channel • {formatDate(content.created_at)}</p>
               </div>
             </div>
 
@@ -1088,14 +1088,14 @@ function ContentAdjusterForm({
               {blocks.map((b) => {
                 if (b.type === "text" && b.text) {
                   return (
-                    <div key={b.id} className="text-sm text-neutral-200 whitespace-pre-wrap leading-relaxed">
+                    <div key={b.id} className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
                       {b.text}
                     </div>
                   );
                 }
                 if (b.type === "image" && b.path) {
                   return (
-                    <div key={b.id} className="rounded-xl overflow-hidden border border-neutral-800">
+                    <div key={b.id} className="rounded-xl overflow-hidden border border-border">
                       <img
                         src={getMediaUrl(b.path)}
                         alt={b.text || "Preview"}
@@ -1106,7 +1106,7 @@ function ContentAdjusterForm({
                 }
                 if (b.type === "audio" && b.path) {
                   return (
-                    <div key={b.id} className="p-3 rounded-xl bg-neutral-800/80 border border-neutral-700/80 space-y-1.5">
+                    <div key={b.id} className="p-3 rounded-xl bg-surface-muted border border-border space-y-1.5">
                       <div className="flex items-center gap-2 text-xs font-medium text-emerald-400">
                         <Mic className="h-3.5 w-3.5" />
                         <span>Voice Narration</span>
@@ -1117,7 +1117,7 @@ function ContentAdjusterForm({
                 }
                 if (b.type === "video" && b.path) {
                   return (
-                    <div key={b.id} className="rounded-xl overflow-hidden border border-neutral-800 bg-black">
+                    <div key={b.id} className="rounded-xl overflow-hidden border border-border bg-black">
                       <video src={getMediaUrl(b.path)} controls className="w-full aspect-video" />
                     </div>
                   );
@@ -1132,10 +1132,10 @@ function ContentAdjusterForm({
       {/* Dispatch Modal */}
       {showDispatchModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Send className="h-4 w-4 text-indigo-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Send className="h-4 w-4 text-primary" />
                 <span>Dispatch to Telegram</span>
               </h3>
               <button
@@ -1144,22 +1144,22 @@ function ContentAdjusterForm({
                   setDispatchError(null);
                   setDispatchSuccess(null);
                 }}
-                className="text-neutral-400 hover:text-white text-xs"
+                className="text-muted-foreground hover:text-foreground text-xs"
               >
                 Close
               </button>
             </div>
 
             {/* Content summary and items list */}
-            <div className="p-3.5 rounded-xl bg-neutral-800/50 border border-neutral-700/60 space-y-2">
-              <p className="text-xs font-semibold text-white truncate">{title}</p>
+            <div className="p-3.5 rounded-xl bg-surface-muted/50 border border-border space-y-2">
+              <p className="text-xs font-semibold text-foreground truncate">{title}</p>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {blocks.map((d, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-700/80"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-surface text-foreground border border-border"
                   >
-                    {d.type === "text" && <FileText className="h-3 w-3 text-indigo-400" />}
+                    {d.type === "text" && <FileText className="h-3 w-3 text-primary" />}
                     {d.type === "image" && <ImageIcon className="h-3 w-3 text-pink-400" />}
                     {d.type === "audio" && <Mic className="h-3 w-3 text-emerald-400" />}
                     {d.type === "video" && <Video className="h-3 w-3 text-cyan-400" />}
@@ -1167,20 +1167,20 @@ function ContentAdjusterForm({
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-neutral-400">
+              <p className="text-[10px] text-muted-foreground">
                 All {blocks.length} content item(s) will be published in order to the destination.
               </p>
             </div>
 
             {/* Mode Toggle: Direct vs Scheduled */}
-            <div className="grid grid-cols-2 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60 text-xs font-medium">
+            <div className="grid grid-cols-2 p-1 bg-surface-muted rounded-xl border border-border text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setIsScheduledMode(false)}
                 className={`py-1.5 rounded-lg transition text-center ${
                   !isScheduledMode
-                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                    : "text-neutral-400 hover:text-white"
+                    ? "bg-primary text-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Publish Directly
@@ -1198,8 +1198,8 @@ function ContentAdjusterForm({
                 }}
                 className={`py-1.5 rounded-lg transition text-center ${
                   isScheduledMode
-                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                    : "text-neutral-400 hover:text-white"
+                    ? "bg-primary text-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Schedule for Later
@@ -1208,24 +1208,24 @@ function ContentAdjusterForm({
 
             {/* Date Time Picker for Scheduling */}
             {isScheduledMode && (
-              <div className="space-y-1.5 p-3 rounded-xl bg-neutral-800/40 border border-neutral-700/60">
-                <label className="block text-xs font-medium text-neutral-300">
+              <div className="space-y-1.5 p-3 rounded-xl bg-surface-muted border border-border">
+                <label className="block text-xs font-medium text-foreground">
                   Select Scheduled Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduledDateTime}
                   onChange={(e) => setScheduledDateTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-[10px] text-neutral-400 mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   The background worker will automatically dispatch this post when the scheduled time arrives.
                 </p>
               </div>
             )}
 
             {dispatchError && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-danger-soft border border-danger/20 text-danger text-xs flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{dispatchError}</span>
               </div>
@@ -1239,13 +1239,13 @@ function ContentAdjusterForm({
             )}
 
             <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
+              <label className="block text-xs font-medium text-foreground mb-1.5">
                 Select Connected Destination Platform
               </label>
               {platforms.length === 0 ? (
-                <div className="text-xs text-neutral-400 p-3 bg-neutral-800/40 rounded-xl border border-neutral-700">
+                <div className="text-xs text-muted-foreground p-3 bg-surface-muted rounded-xl border border-border">
                   No platforms connected.{" "}
-                  <Link href="/settings/platforms" className="text-indigo-400 underline">
+                  <Link href="/settings/platforms" className="text-primary underline">
                     Connect Telegram bot now
                   </Link>
                 </div>
@@ -1253,7 +1253,7 @@ function ContentAdjusterForm({
                 <select
                   value={selectedPlatformId || (platforms[0]?._id ?? "")}
                   onChange={(e) => setSelectedPlatformId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   {platforms.map((p) => (
                     <option key={p._id} value={p._id}>
@@ -1268,7 +1268,7 @@ function ContentAdjusterForm({
               <button
                 type="button"
                 onClick={() => setShowDispatchModal(false)}
-                className="px-3.5 py-2 rounded-xl text-xs text-neutral-300 hover:bg-neutral-800 transition"
+                className="px-3.5 py-2 rounded-xl text-xs text-foreground hover:bg-surface-muted transition"
               >
                 Cancel
               </button>
@@ -1285,7 +1285,7 @@ function ContentAdjusterForm({
                     });
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
               >
                 {dispatchMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

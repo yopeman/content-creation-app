@@ -307,19 +307,19 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
         if (dialogRef.current) dialogRef.current.returnValue = "";
         onClose();
       }}
-      className="bg-neutral-900 border border-neutral-800 rounded-2xl shadow-2xl text-neutral-100 w-full max-w-md m-auto p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
+      className="bg-surface border border-border rounded-2xl shadow-2xl text-foreground w-full max-w-md m-auto p-0 backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-800">
+      <div className="flex items-center justify-between px-6 py-4 border-b border-border">
         <div className="flex items-center gap-2.5">
-          <div className="h-8 w-8 rounded-lg bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
+          <div className="h-8 w-8 rounded-lg bg-primary-soft border border-primary-border flex items-center justify-center text-primary">
             {activeTab === "profile" ? (
               <UserIcon className="h-4 w-4" />
             ) : (
               <KeyRound className="h-4 w-4" />
             )}
           </div>
-          <h1 id={titleId} className="text-base font-semibold text-white">
+          <h1 id={titleId} className="text-base font-semibold text-foreground">
             Account Settings
           </h1>
         </div>
@@ -327,7 +327,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
           type="button"
           onClick={() => dialogRef.current?.close()}
           aria-label="Close account settings dialog"
-          className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+          className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
         >
           <X className="h-4 w-4" />
         </button>
@@ -337,7 +337,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
       <div
         role="tablist"
         aria-label="Account settings sections"
-        className="flex gap-1 px-6 pt-3 border-b border-neutral-800"
+        className="flex gap-1 px-6 pt-3 border-b border-border"
       >
         <button
           id={profileTabId}
@@ -348,8 +348,8 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
           onClick={() => setActiveTab("profile")}
           className={`px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 transition ${
             activeTab === "profile"
-              ? "border-indigo-500 text-white"
-              : "border-transparent text-neutral-400 hover:text-neutral-200"
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Profile
@@ -363,8 +363,8 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
           onClick={() => setActiveTab("password")}
           className={`px-3.5 py-2 text-xs font-medium rounded-t-lg border-b-2 transition ${
             activeTab === "password"
-              ? "border-indigo-500 text-white"
-              : "border-transparent text-neutral-400 hover:text-neutral-200"
+              ? "border-primary text-foreground"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Password
@@ -385,7 +385,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
             <div
               role="alert"
               aria-live="polite"
-              className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300"
+              className="flex items-start gap-2.5 p-3 rounded-xl bg-danger-soft border border-danger/30 text-xs text-danger"
             >
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{profileSubmitError}</span>
@@ -393,8 +393,8 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor={nameId} className="block text-xs font-medium text-neutral-300">
-              Full name <span className="text-rose-400" aria-hidden="true">*</span>
+            <label htmlFor={nameId} className="block text-xs font-medium text-foreground">
+              Full name <span className="text-danger" aria-hidden="true">*</span>
             </label>
             <input
               ref={nameInputRef}
@@ -419,19 +419,19 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                 setProfileTouched((prev) => ({ ...prev, name: true }));
                 setProfileErrors((prev) => ({ ...prev, name: validateName(name) }));
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 aria-[invalid=true]:border-rose-500/70"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-sm text-foreground placeholder-subtle-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 aria-[invalid=true]:border-danger/70"
               placeholder="Your name"
             />
             {profileTouched.name && profileErrors.name && (
-              <p id={nameErrorId} className="text-xs text-rose-400">
+              <p id={nameErrorId} className="text-xs text-danger">
                 {profileErrors.name}
               </p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor={emailId} className="block text-xs font-medium text-neutral-300">
-              Email <span className="text-rose-400" aria-hidden="true">*</span>
+            <label htmlFor={emailId} className="block text-xs font-medium text-foreground">
+              Email <span className="text-danger" aria-hidden="true">*</span>
             </label>
             <input
               ref={emailInputRef}
@@ -457,18 +457,18 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                 setProfileTouched((prev) => ({ ...prev, email: true }));
                 setProfileErrors((prev) => ({ ...prev, email: validateEmail(email) }));
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 aria-[invalid=true]:border-rose-500/70"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-sm text-foreground placeholder-subtle-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 aria-[invalid=true]:border-danger/70"
               placeholder="you@example.com"
             />
             {profileTouched.email && profileErrors.email && (
-              <p id={emailErrorId} className="text-xs text-rose-400">
+              <p id={emailErrorId} className="text-xs text-danger">
                 {profileErrors.email}
               </p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor={timezoneId} className="block text-xs font-medium text-neutral-300">
+            <label htmlFor={timezoneId} className="block text-xs font-medium text-foreground">
               Timezone
             </label>
             <select
@@ -484,7 +484,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                   setProfileErrors((prev) => ({ ...prev, timezone: undefined }));
                 }
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40"
             >
               {timezones.map((tz) => (
                 <option key={tz} value={tz}>
@@ -493,24 +493,24 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
               ))}
             </select>
             {profileErrors.timezone && (
-              <p id={timezoneErrorId} className="text-xs text-rose-400">
+              <p id={timezoneErrorId} className="text-xs text-danger">
                 {profileErrors.timezone}
               </p>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-800">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={updateProfileMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white shadow-md shadow-indigo-600/20 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground shadow-md shadow-primary/20 transition"
             >
               {updateProfileMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Save changes
@@ -533,7 +533,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
             <div
               role="alert"
               aria-live="polite"
-              className="flex items-start gap-2.5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300"
+              className="flex items-start gap-2.5 p-3 rounded-xl bg-danger-soft border border-danger/30 text-xs text-danger"
             >
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5" />
               <span>{passwordSubmitError}</span>
@@ -541,8 +541,8 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
           )}
 
           <div className="space-y-1.5">
-            <label htmlFor={currentPasswordId} className="block text-xs font-medium text-neutral-300">
-              Current password <span className="text-rose-400" aria-hidden="true">*</span>
+            <label htmlFor={currentPasswordId} className="block text-xs font-medium text-foreground">
+              Current password <span className="text-danger" aria-hidden="true">*</span>
             </label>
             <div className="relative">
               <input
@@ -572,7 +572,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                     currentPassword: currentPassword ? undefined : "Current password is required.",
                   }));
                 }}
-                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 aria-[invalid=true]:border-rose-500/70"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-background border border-border text-sm text-foreground placeholder-subtle-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 aria-[invalid=true]:border-danger/70"
                 placeholder="Enter current password"
               />
               <button
@@ -580,21 +580,21 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                 aria-pressed={showCurrentPassword}
                 aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
                 onClick={() => setShowCurrentPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-neutral-400 hover:text-neutral-200 transition"
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground hover:text-foreground transition"
               >
                 {showCurrentPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             {passwordTouched.currentPassword && passwordErrors.currentPassword && (
-              <p id={currentPasswordErrorId} className="text-xs text-rose-400">
+              <p id={currentPasswordErrorId} className="text-xs text-danger">
                 {passwordErrors.currentPassword}
               </p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor={newPasswordId} className="block text-xs font-medium text-neutral-300">
-              New password <span className="text-rose-400" aria-hidden="true">*</span>
+            <label htmlFor={newPasswordId} className="block text-xs font-medium text-foreground">
+              New password <span className="text-danger" aria-hidden="true">*</span>
             </label>
             <div className="relative">
               <input
@@ -629,7 +629,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                     newPassword: validateNewPassword(newPassword),
                   }));
                 }}
-                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 aria-[invalid=true]:border-rose-500/70"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-background border border-border text-sm text-foreground placeholder-subtle-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 aria-[invalid=true]:border-danger/70"
                 placeholder="Enter new password"
               />
               <button
@@ -637,24 +637,24 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                 aria-pressed={showNewPassword}
                 aria-label={showNewPassword ? "Hide new password" : "Show new password"}
                 onClick={() => setShowNewPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-neutral-400 hover:text-neutral-200 transition"
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground hover:text-foreground transition"
               >
                 {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
-            <p id={newPasswordHintId} className="text-[11px] text-neutral-400">
+            <p id={newPasswordHintId} className="text-[11px] text-muted-foreground">
               At least 6 characters.
             </p>
             {passwordTouched.newPassword && passwordErrors.newPassword && (
-              <p id={newPasswordErrorId} className="text-xs text-rose-400">
+              <p id={newPasswordErrorId} className="text-xs text-danger">
                 {passwordErrors.newPassword}
               </p>
             )}
           </div>
 
           <div className="space-y-1.5">
-            <label htmlFor={confirmPasswordId} className="block text-xs font-medium text-neutral-300">
-              Confirm new password <span className="text-rose-400" aria-hidden="true">*</span>
+            <label htmlFor={confirmPasswordId} className="block text-xs font-medium text-foreground">
+              Confirm new password <span className="text-danger" aria-hidden="true">*</span>
             </label>
             <div className="relative">
               <input
@@ -687,7 +687,7 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                     confirmPassword: validateConfirmPassword(confirmPassword, newPassword),
                   }));
                 }}
-                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-neutral-950 border border-neutral-800 text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500/40 aria-[invalid=true]:border-rose-500/70"
+                className="w-full px-3.5 py-2.5 pr-10 rounded-xl bg-background border border-border text-sm text-foreground placeholder-subtle-foreground focus:outline-none focus:border-primary focus-visible:ring-2 focus-visible:ring-primary/40 aria-[invalid=true]:border-danger/70"
                 placeholder="Confirm new password"
               />
               <button
@@ -697,30 +697,30 @@ export function ProfileEditModal({ open, user, onClose }: ProfileEditModalProps)
                   showConfirmPassword ? "Hide confirm password" : "Show confirm password"
                 }
                 onClick={() => setShowConfirmPassword((v) => !v)}
-                className="absolute inset-y-0 right-0 px-3 flex items-center text-neutral-400 hover:text-neutral-200 transition"
+                className="absolute inset-y-0 right-0 px-3 flex items-center text-muted-foreground hover:text-foreground transition"
               >
                 {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
             {passwordTouched.confirmPassword && passwordErrors.confirmPassword && (
-              <p id={confirmPasswordErrorId} className="text-xs text-rose-400">
+              <p id={confirmPasswordErrorId} className="text-xs text-danger">
                 {passwordErrors.confirmPassword}
               </p>
             )}
           </div>
 
-          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-neutral-800">
+          <div className="flex items-center justify-end gap-2.5 pt-2 border-t border-border">
             <button
               type="button"
               onClick={() => dialogRef.current?.close()}
-              className="px-4 py-2 rounded-xl text-xs font-medium text-neutral-300 hover:text-white hover:bg-neutral-800 transition"
+              className="px-4 py-2 rounded-xl text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={changePasswordMutation.isPending}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed text-white shadow-md shadow-indigo-600/20 transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold bg-primary hover:bg-primary-hover disabled:opacity-60 disabled:cursor-not-allowed text-primary-foreground shadow-md shadow-primary/20 transition"
             >
               {changePasswordMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
               Update password

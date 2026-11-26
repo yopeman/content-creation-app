@@ -49,22 +49,22 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Welcome Banner */}
-      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-900/60 via-purple-900/40 to-neutral-900 border border-indigo-500/20 p-8 shadow-xl">
+      <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-soft via-surface to-surface-muted border border-primary-border p-8 shadow-xl">
         <div className="relative z-10 max-w-2xl">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-medium mb-3">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-soft border border-primary-border text-primary text-xs font-semibold mb-3">
             <Sparkles className="h-3.5 w-3.5" />
             <span>AI Multi-Modal Content Engine</span>
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight sm:text-4xl">
+          <h1 className="text-3xl font-extrabold text-foreground tracking-tight sm:text-4xl">
             Welcome to Yope Creator
           </h1>
-          <p className="mt-2 text-sm text-neutral-300 leading-relaxed">
+          <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
             Generate viral social posts, produce audio voiceovers and video reels, and publish to Telegram in one automated workflow.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
               href="/studio"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/30 transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-sm font-semibold shadow-lg shadow-primary/30 transition"
             >
               <Wand2 className="h-4 w-4" />
               <span>Generate Content with AI</span>
@@ -72,7 +72,7 @@ export default function DashboardOverviewPage() {
             </Link>
             <Link
               href="/contents/new"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-white text-sm font-medium border border-neutral-700 transition"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-sm font-medium border border-border transition"
             >
               <Plus className="h-4 w-4" />
               <span>New Content</span>
@@ -83,48 +83,48 @@ export default function DashboardOverviewPage() {
 
       {/* Metrics Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
+        <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Total Contents</span>
-            <div className="p-2 rounded-lg bg-indigo-500/10 text-indigo-400">
+            <span className="text-xs font-medium text-muted-foreground">Total Contents</span>
+            <div className="p-2 rounded-lg bg-primary-soft text-primary">
               <FileText className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-3">{contents.length}</p>
-          <p className="text-xs text-neutral-500 mt-1">Multi-modal content assets</p>
+          <p className="text-2xl font-bold text-foreground mt-3">{contents.length}</p>
+          <p className="text-xs text-subtle-foreground mt-1">Multi-modal content assets</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
+        <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Scheduled Posts</span>
+            <span className="text-xs font-medium text-muted-foreground">Scheduled Posts</span>
             <div className="p-2 rounded-lg bg-sky-500/10 text-sky-400">
               <Clock className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-3">{scheduledCount}</p>
-          <p className="text-xs text-neutral-500 mt-1">Ready for automated dispatch</p>
+          <p className="text-2xl font-bold text-foreground mt-3">{scheduledCount}</p>
+          <p className="text-xs text-subtle-foreground mt-1">Ready for automated dispatch</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
+        <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Published Posts</span>
-            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+            <span className="text-xs font-medium text-muted-foreground">Published Posts</span>
+            <div className="p-2 rounded-lg bg-success-soft text-success">
               <Send className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-3">{publishedCount}</p>
-          <p className="text-xs text-neutral-500 mt-1">Delivered to connected channels</p>
+          <p className="text-2xl font-bold text-foreground mt-3">{publishedCount}</p>
+          <p className="text-xs text-subtle-foreground mt-1">Delivered to connected channels</p>
         </div>
 
-        <div className="p-5 rounded-2xl bg-neutral-900/80 border border-neutral-800 shadow-sm">
+        <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-400">Connected Accounts</span>
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-400">
+            <span className="text-xs font-medium text-muted-foreground">Connected Accounts</span>
+            <div className="p-2 rounded-lg bg-warning-soft text-warning">
               <Radio className="h-4 w-4" />
             </div>
           </div>
-          <p className="text-2xl font-bold text-white mt-3">{platforms.length}</p>
-          <p className="text-xs text-neutral-500 mt-1">
+          <p className="text-2xl font-bold text-foreground mt-3">{platforms.length}</p>
+          <p className="text-xs text-subtle-foreground mt-1">
             {platforms.length > 0 ? "Telegram active" : "No accounts connected"}
           </p>
         </div>
@@ -135,10 +135,10 @@ export default function DashboardOverviewPage() {
         {/* Recent Contents */}
         <div className="lg:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-lg font-semibold text-white">Recent Content</h2>
+            <h2 className="text-lg font-semibold text-foreground">Recent Content</h2>
             <Link
               href="/contents"
-              className="text-xs font-medium text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+              className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
             >
               <span>View all</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -146,19 +146,19 @@ export default function DashboardOverviewPage() {
           </div>
 
           {loadingContents ? (
-            <div className="h-48 rounded-2xl bg-neutral-900/50 border border-neutral-800 animate-pulse flex items-center justify-center text-neutral-500 text-sm">
+            <div className="h-48 rounded-2xl bg-surface/50 border border-border animate-pulse flex items-center justify-center text-muted-foreground text-sm">
               Loading content...
             </div>
           ) : contents.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center bg-neutral-900/30">
-              <FileText className="h-8 w-8 text-neutral-600 mx-auto mb-2" />
-              <p className="text-sm font-medium text-neutral-300">No content created yet</p>
-              <p className="text-xs text-neutral-500 mt-1">
+            <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-surface/30">
+              <FileText className="h-8 w-8 text-subtle-foreground mx-auto mb-2" />
+              <p className="text-sm font-medium text-foreground">No content created yet</p>
+              <p className="text-xs text-muted-foreground mt-1">
                 Draft content manually or generate multi-modal assets with AI.
               </p>
               <Link
                 href="/studio"
-                className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-indigo-600 text-white text-xs font-medium"
+                className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium"
               >
                 <Wand2 className="h-3.5 w-3.5" />
                 <span>Open Studio</span>
@@ -175,25 +175,25 @@ export default function DashboardOverviewPage() {
                   <Link
                     key={c._id}
                     href={`/contents/${c._id}`}
-                    className="block p-4 rounded-xl bg-neutral-900/60 border border-neutral-800/80 hover:border-neutral-700 hover:bg-neutral-800/40 transition group"
+                    className="block p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:bg-surface-muted transition group"
                   >
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <h3 className="text-sm font-semibold text-white group-hover:text-indigo-400 transition">
+                        <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition">
                           {c.title}
                         </h3>
                         {textDetail?.text && (
-                          <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
                             {textDetail.text}
                           </p>
                         )}
                       </div>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-neutral-800 text-neutral-300 font-medium capitalize">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-muted text-foreground font-medium capitalize border border-border">
                         {c.status}
                       </span>
                     </div>
 
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-neutral-500 border-t border-neutral-800/60 pt-2.5">
+                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border pt-2.5">
                       <span>{formatCount} format(s) attached</span>
                       <span>Created {formatDate(c.created_at)}</span>
                     </div>
@@ -206,29 +206,29 @@ export default function DashboardOverviewPage() {
 
         {/* Quick Dispatch / Platform Status */}
         <div className="space-y-4">
-          <h2 className="text-lg font-semibold text-white">Platform Status</h2>
+          <h2 className="text-lg font-semibold text-foreground">Platform Status</h2>
 
-          <div className="rounded-2xl bg-neutral-900/60 border border-neutral-800/80 p-5 space-y-4">
+          <div className="rounded-2xl bg-surface border border-border p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-lg bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-xs">
                   TG
                 </div>
                 <div>
-                  <h4 className="text-xs font-semibold text-white">Telegram</h4>
-                  <p className="text-[10px] text-neutral-400">Direct Bot API publishing</p>
+                  <h4 className="text-xs font-semibold text-foreground">Telegram</h4>
+                  <p className="text-[10px] text-muted-foreground">Direct Bot API publishing</p>
                 </div>
               </div>
 
               {platforms.some((p) => p.code === "TG") ? (
-                <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                <span className="inline-flex items-center gap-1 text-[11px] text-success font-medium">
                   <CheckCircle2 className="h-3.5 w-3.5" />
                   <span>Connected</span>
                 </span>
               ) : (
                 <Link
                   href="/settings/platforms"
-                  className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium"
+                  className="text-[11px] text-primary hover:underline font-medium"
                 >
                   Connect +
                 </Link>
@@ -238,20 +238,20 @@ export default function DashboardOverviewPage() {
             {platforms.filter((p) => p.code === "TG").map((tg) => (
               <div
                 key={tg._id}
-                className="p-3 rounded-xl bg-neutral-800/50 border border-neutral-700/50 text-xs flex items-center justify-between"
+                className="p-3 rounded-xl bg-surface-muted border border-border text-xs flex items-center justify-between"
               >
                 <div className="min-w-0 pr-2">
-                  <p className="font-medium text-white truncate">{tg.account_name}</p>
-                  <p className="text-[11px] text-neutral-400 truncate">{tg.platform_account_id}</p>
+                  <p className="font-medium text-foreground truncate">{tg.account_name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">{tg.platform_account_id}</p>
                 </div>
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shrink-0" />
+                <span className="h-2 w-2 rounded-full bg-success shrink-0" />
               </div>
             ))}
 
-            <div className="border-t border-neutral-800 pt-3">
+            <div className="border-t border-border pt-3">
               <Link
                 href="/settings/platforms"
-                className="w-full py-2 px-3 rounded-lg bg-neutral-800/80 hover:bg-neutral-800 text-neutral-300 text-xs font-medium flex items-center justify-center gap-1.5 transition"
+                className="w-full py-2 px-3 rounded-lg bg-surface-muted hover:bg-surface text-foreground text-xs font-medium flex items-center justify-center gap-1.5 transition border border-border"
               >
                 <Radio className="h-3.5 w-3.5" />
                 <span>Manage Platforms</span>

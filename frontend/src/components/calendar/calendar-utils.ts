@@ -49,16 +49,16 @@ export function getPostCalendarDate(post: Post): Date {
 export function getStatusBadgeClasses(status: Post["status"]): string {
   switch (status) {
     case "published":
-      return "bg-emerald-500/15 text-emerald-300 border-emerald-500/30";
+      return "bg-success-soft text-success border-success/30";
     case "scheduled":
-      return "bg-sky-500/15 text-sky-300 border-sky-500/30";
+      return "bg-sky-500/15 text-sky-400 border-sky-500/30";
     case "failed":
-      return "bg-rose-500/15 text-rose-300 border-rose-500/30";
+      return "bg-danger-soft text-danger border-danger/30";
     case "partial":
-      return "bg-amber-500/15 text-amber-300 border-amber-500/30";
+      return "bg-warning-soft text-warning border-warning/30";
     case "publishing":
-      return "bg-indigo-500/15 text-indigo-300 border-indigo-500/30";
+      return "bg-primary-soft text-primary border-primary-border";
     default:
-      return "bg-neutral-800 text-neutral-300 border-neutral-700";
+      return "bg-surface-muted text-muted-foreground border-border";
   }
 }

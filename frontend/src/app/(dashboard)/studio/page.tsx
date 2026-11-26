@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
@@ -9,7 +8,6 @@ import { Content, ContentType } from "@/types";
 import {
   Wand2,
   Sparkles,
-  Loader2,
   FileText,
   Image as ImageIcon,
   Mic,
@@ -22,8 +20,6 @@ import {
 import Link from "next/link";
 
 export default function StudioPage() {
-  const router = useRouter();
-
   const [prompt, setPrompt] = useState("");
   const [title, setTitle] = useState("");
   const [formats, setFormats] = useState<ContentType[]>([
@@ -75,33 +71,33 @@ export default function StudioPage() {
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Studio Banner */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2.5 flex-wrap">
+        <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2.5 flex-wrap">
           <Wand2 className="h-6 w-6 text-purple-400" />
           <span>Multi-Modal AI Studio</span>
           <ComingSoonBadge />
         </h1>
-        <p className="text-xs text-neutral-400 mt-1">
+        <p className="text-xs text-muted-foreground mt-1">
           Generate complete social content packages across Text, Graphics, Audio, and Video.
         </p>
       </div>
 
       {/* Main Generator Card */}
-      <div className="bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-xl space-y-5">
+      <div className="bg-surface border border-border rounded-2xl p-6 shadow-xl space-y-5">
         <div>
-          <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
-            Content Topic or Prompt <span className="text-red-400">*</span>
+          <label className="block text-xs font-semibold text-foreground mb-1.5">
+            Content Topic or Prompt <span className="text-danger">*</span>
           </label>
           <textarea
             rows={3}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="e.g. Write a high-converting announcement for our new AI feature with bullet points..."
-            className="w-full px-4 py-3 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full px-4 py-3 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-semibold text-neutral-300 mb-1.5">
+          <label className="block text-xs font-semibold text-foreground mb-1.5">
             Title (Optional)
           </label>
           <input
@@ -109,13 +105,13 @@ export default function StudioPage() {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="e.g. Next-Gen AI Feature Launch"
-            className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white placeholder-neutral-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary transition"
           />
         </div>
 
         {/* Modality Toggles */}
         <div>
-          <label className="block text-xs font-semibold text-neutral-300 mb-2">
+          <label className="block text-xs font-semibold text-foreground mb-2">
             Target Modalities to Generate
           </label>
           <div className="flex flex-wrap gap-2.5">
@@ -133,8 +129,8 @@ export default function StudioPage() {
                   onClick={() => toggleFormat(type)}
                   className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border transition ${
                     active
-                      ? "bg-indigo-600 text-white border-indigo-500 shadow-md shadow-indigo-600/20"
-                      : "bg-neutral-800 text-neutral-400 border-neutral-700 hover:text-white hover:bg-neutral-700/60"
+                      ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
+                      : "bg-surface-muted text-muted-foreground border-border hover:text-foreground hover:bg-surface"
                   }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
@@ -148,7 +144,7 @@ export default function StudioPage() {
         {/* Generate Button */}
         <button
           disabled
-          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-indigo-600/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary to-orange-400 text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
           <Sparkles className="h-4 w-4" />
           <span>Generate Multi-Modal Assets</span>
@@ -158,43 +154,43 @@ export default function StudioPage() {
 
       {/* Generated Content Preview Area */}
       {generatedContent && (
-        <div className="space-y-6 pt-4 border-t border-neutral-800 animate-in fade-in">
+        <div className="space-y-6 pt-4 border-t border-border animate-in fade-in">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="text-xl font-bold text-white">{generatedContent.title}</h2>
-              <span className="text-xs text-emerald-400 font-medium">
+              <h2 className="text-xl font-bold text-foreground">{generatedContent.title}</h2>
+              <span className="text-xs text-success font-medium">
                 ● Generated & Saved to Content Library
               </span>
             </div>
 
             <Link
               href={`/studio/${generatedContent._id}`}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 border border-neutral-700 text-xs font-semibold text-white transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-surface-muted hover:bg-surface border border-border text-xs font-semibold text-foreground transition"
             >
               <span>Refine in Prompt Chain Studio</span>
-              <ArrowRight className="h-3.5 w-3.5 text-indigo-400" />
+              <ArrowRight className="h-3.5 w-3.5 text-primary" />
             </Link>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* 1. Text Copy */}
             {textDetail && (
-              <div className="p-5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-3 flex flex-col justify-between">
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-3 flex flex-col justify-between">
                 <div>
-                  <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
-                    <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-                      <FileText className="h-4 w-4 text-indigo-400" />
+                  <div className="flex items-center justify-between border-b border-border pb-2.5">
+                    <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <FileText className="h-4 w-4 text-primary" />
                       <span>Post Copy</span>
                     </span>
                     <button
                       onClick={() => handleCopyText(textDetail.text)}
-                      className="inline-flex items-center gap-1 text-[11px] text-neutral-400 hover:text-white transition"
+                      className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition"
                     >
-                      {copied ? <Check className="h-3 w-3 text-emerald-400" /> : <Copy className="h-3 w-3" />}
+                      {copied ? <Check className="h-3 w-3 text-success" /> : <Copy className="h-3 w-3" />}
                       <span>{copied ? "Copied!" : "Copy"}</span>
                     </button>
                   </div>
-                  <p className="text-sm text-neutral-200 whitespace-pre-line mt-3 leading-relaxed">
+                  <p className="text-sm text-foreground whitespace-pre-line mt-3 leading-relaxed">
                     {textDetail.text}
                   </p>
                 </div>
@@ -203,23 +199,23 @@ export default function StudioPage() {
 
             {/* 2. Image Asset */}
             {imageDetail && imageDetail.path && (
-              <div className="p-5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-3">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
-                  <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
-                    <ImageIcon className="h-4 w-4 text-indigo-400" />
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                    <ImageIcon className="h-4 w-4 text-primary" />
                     <span>Graphic Banner</span>
                   </span>
                   <a
                     href={getMediaUrl(imageDetail.path)}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-[11px] text-indigo-400 hover:underline flex items-center gap-1"
+                    className="text-[11px] text-primary hover:underline flex items-center gap-1"
                   >
                     <span>Full size</span>
                     <ExternalLink className="h-3 w-3" />
                   </a>
                 </div>
-                <div className="rounded-xl overflow-hidden border border-neutral-800 bg-black/40 flex items-center justify-center max-h-72">
+                <div className="rounded-xl overflow-hidden border border-border bg-black/40 flex items-center justify-center max-h-72">
                   <img
                     src={getMediaUrl(imageDetail.path)}
                     alt={imageDetail.script || "Generated Banner"}
@@ -231,16 +227,16 @@ export default function StudioPage() {
 
             {/* 3. Audio Narration */}
             {audioDetail && audioDetail.path && (
-              <div className="p-5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-3">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
-                  <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Mic className="h-4 w-4 text-purple-400" />
                     <span>Voiceover Narration</span>
                   </span>
-                  <span className="text-[10px] text-neutral-500 uppercase font-mono">MP3</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-mono">MP3</span>
                 </div>
                 <audio controls className="w-full mt-2" src={getMediaUrl(audioDetail.path)} />
-                <p className="text-[11px] text-neutral-400 italic mt-1 line-clamp-2">
+                <p className="text-[11px] text-muted-foreground italic mt-1 line-clamp-2">
                   &ldquo;{audioDetail.script}&rdquo;
                 </p>
               </div>
@@ -248,13 +244,13 @@ export default function StudioPage() {
 
             {/* 4. Video Reel */}
             {videoDetail && videoDetail.path && (
-              <div className="p-5 rounded-2xl bg-neutral-900 border border-neutral-800 space-y-3">
-                <div className="flex items-center justify-between border-b border-neutral-800 pb-2.5">
-                  <span className="text-xs font-semibold text-neutral-300 flex items-center gap-1.5">
+              <div className="p-5 rounded-2xl bg-surface border border-border space-y-3">
+                <div className="flex items-center justify-between border-b border-border pb-2.5">
+                  <span className="text-xs font-semibold text-foreground flex items-center gap-1.5">
                     <Video className="h-4 w-4 text-pink-400" />
                     <span>Reel Video (9:16)</span>
                   </span>
-                  <span className="text-[10px] text-neutral-500 uppercase font-mono">MP4</span>
+                  <span className="text-[10px] text-muted-foreground uppercase font-mono">MP4</span>
                 </div>
                 <div className="rounded-xl overflow-hidden bg-black/60 flex items-center justify-center max-h-80">
                   <video

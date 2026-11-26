@@ -145,11 +145,11 @@ export default function CalendarPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <CalendarDays className="h-6 w-6 text-indigo-400" />
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+            <CalendarDays className="h-6 w-6 text-primary" />
             <span>Content Calendar</span>
           </h1>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             View posted and scheduled content across dates, or create a new post directly on the calendar.
           </p>
         </div>
@@ -157,7 +157,7 @@ export default function CalendarPage() {
         <button
           type="button"
           onClick={() => openCreateForDate(selectedDay)}
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition"
         >
           <CalendarPlus className="h-4 w-4" />
           <span>Create Post</span>
@@ -170,15 +170,15 @@ export default function CalendarPage() {
           role={banner.type === "error" ? "alert" : "status"}
           className={`p-3.5 rounded-xl border text-xs flex items-center justify-between gap-2 transition ${
             banner.type === "success"
-              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
-              : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+              ? "bg-success-soft border-success/30 text-success"
+              : "bg-danger-soft border-danger/30 text-danger"
           }`}
         >
           <div className="flex items-center gap-2">
             {banner.type === "success" ? (
-              <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
             ) : (
-              <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+              <AlertCircle className="h-4 w-4 shrink-0 text-danger" />
             )}
             <span>{banner.message}</span>
           </div>
@@ -186,7 +186,7 @@ export default function CalendarPage() {
             type="button"
             onClick={() => setBanner(null)}
             aria-label="Dismiss notification"
-            className="text-neutral-400 hover:text-white text-xs px-1.5 py-0.5 rounded"
+            className="text-muted-foreground hover:text-foreground text-xs px-1.5 py-0.5 rounded"
           >
             ✕
           </button>
@@ -198,10 +198,10 @@ export default function CalendarPage() {
         <div className="flex flex-wrap items-center gap-1.5">
           {(
             [
-              { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-indigo-600 text-white" },
+              { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-primary text-primary-foreground shadow-primary/20" },
               { id: "scheduled", label: "Scheduled", count: counts.scheduled, activeClass: "bg-sky-600 text-white" },
               { id: "published", label: "Posted", count: counts.published, activeClass: "bg-emerald-600 text-white" },
-              { id: "other", label: "Drafts / Failed", count: counts.other, activeClass: "bg-neutral-700 text-white" },
+              { id: "other", label: "Drafts / Failed", count: counts.other, activeClass: "bg-surface-muted text-foreground border border-border" },
             ] as const
           ).map((tab) => (
             <button
@@ -211,12 +211,12 @@ export default function CalendarPage() {
               onClick={() => setStatusFilter(tab.id)}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
                 statusFilter === tab.id
-                  ? `${tab.activeClass} shadow-sm`
-                  : "bg-neutral-900 border border-neutral-800 text-neutral-400 hover:text-white"
+                  ? `${tab.activeClass} shadow-sm font-semibold`
+                  : "bg-surface border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               <span>{tab.label}</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-neutral-800/80">
+              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
                 {tab.count}
               </span>
             </button>
@@ -232,28 +232,28 @@ export default function CalendarPage() {
               setCurrentMonth(startOfMonth(now));
               setSelectedDay(now);
             }}
-            className="px-3 py-1.5 rounded-xl bg-neutral-900 border border-neutral-800 hover:bg-neutral-800 text-xs font-medium text-neutral-300 transition"
+            className="px-3 py-1.5 rounded-xl bg-surface border border-border hover:bg-surface-muted text-xs font-medium text-foreground transition"
           >
             Today
           </button>
 
-          <div className="flex items-center rounded-xl bg-neutral-900 border border-neutral-800 overflow-hidden">
+          <div className="flex items-center rounded-xl bg-surface border border-border overflow-hidden">
             <button
               type="button"
               onClick={() => setCurrentMonth((m) => subMonths(m, 1))}
               aria-label="Previous month"
-              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-3 text-xs font-semibold text-white min-w-[130px] text-center">
+            <span className="px-3 text-xs font-semibold text-foreground min-w-[130px] text-center">
               {format(currentMonth, "MMMM yyyy")}
             </span>
             <button
               type="button"
               onClick={() => setCurrentMonth((m) => addMonths(m, 1))}
               aria-label="Next month"
-              className="p-2 text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+              className="p-2 text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
             >
               <ChevronRight className="h-4 w-4" />
             </button>
@@ -264,13 +264,13 @@ export default function CalendarPage() {
       {/* Main Content: Calendar Grid + Selected Day Agenda */}
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start">
         {/* Month Grid */}
-        <div className="xl:col-span-3 rounded-2xl border border-neutral-800 bg-neutral-900/50 overflow-hidden">
+        <div className="xl:col-span-3 rounded-2xl border border-border bg-surface overflow-hidden">
           {/* Weekday Headers */}
-          <div className="grid grid-cols-7 border-b border-neutral-800 bg-neutral-900/80">
+          <div className="grid grid-cols-7 border-b border-border bg-surface-muted">
             {WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="py-2.5 px-2 text-center text-[11px] font-semibold uppercase tracking-wider text-neutral-400"
+                className="py-2.5 px-2 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground"
               >
                 {day}
               </div>
@@ -278,7 +278,7 @@ export default function CalendarPage() {
           </div>
 
           {loadingPosts ? (
-            <div className="h-96 flex items-center justify-center text-xs text-neutral-500 animate-pulse">
+            <div className="h-96 flex items-center justify-center text-xs text-muted-foreground animate-pulse">
               Loading calendar posts...
             </div>
           ) : (
@@ -296,9 +296,9 @@ export default function CalendarPage() {
                   <div
                     key={dayKey}
                     onClick={() => setSelectedDay(day)}
-                    className={`group min-h-[116px] border-b border-r border-neutral-800/80 p-1.5 flex flex-col gap-1 transition cursor-pointer ${
-                      inCurrentMonth ? "bg-neutral-900/30" : "bg-neutral-950/50 text-neutral-600"
-                    } ${isSelected ? "ring-1 ring-inset ring-indigo-500/70 bg-indigo-950/20" : "hover:bg-neutral-800/30"}`}
+                    className={`group min-h-[116px] border-b border-r border-border p-1.5 flex flex-col gap-1 transition cursor-pointer ${
+                      inCurrentMonth ? "bg-surface" : "bg-surface-muted/40 text-subtle-foreground"
+                    } ${isSelected ? "ring-1 ring-inset ring-primary bg-primary-soft/30" : "hover:bg-surface-muted"}`}
                   >
                     {/* Day Header */}
                     <div className="flex items-center justify-between px-1">
@@ -311,10 +311,10 @@ export default function CalendarPage() {
                         aria-label={format(day, "PPPP")}
                         className={`h-6 w-6 rounded-full text-xs font-medium flex items-center justify-center transition ${
                           today
-                            ? "bg-indigo-600 text-white font-bold shadow-sm shadow-indigo-600/30"
+                            ? "bg-primary text-primary-foreground font-bold shadow-sm shadow-primary/30"
                             : inCurrentMonth
-                            ? "text-neutral-300"
-                            : "text-neutral-600"
+                            ? "text-foreground"
+                            : "text-subtle-foreground"
                         }`}
                       >
                         {format(day, "d")}
@@ -328,7 +328,7 @@ export default function CalendarPage() {
                           openCreateForDate(day);
                         }}
                         aria-label={`Create post on ${format(day, "MMM d, yyyy")}`}
-                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 h-6 w-6 rounded-lg flex items-center justify-center text-neutral-400 hover:text-white hover:bg-neutral-700/70 transition"
+                        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 h-6 w-6 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
                       >
                         <Plus className="h-3.5 w-3.5" />
                       </button>
@@ -348,7 +348,7 @@ export default function CalendarPage() {
                               setSelectedDay(day);
                               setActivePost(post);
                             }}
-                            className={`w-full text-left px-1.5 py-1 rounded-lg border text-[11px] leading-tight truncate flex items-center gap-1 transition hover:brightness-110 ${getStatusBadgeClasses(
+                            className={`w-full text-left px-1.5 py-1 rounded-lg border text-[11px] leading-tight truncate flex items-center gap-1 transition hover:brightness-105 ${getStatusBadgeClasses(
                               post.status
                             )}`}
                           >
@@ -374,7 +374,7 @@ export default function CalendarPage() {
                             e.stopPropagation();
                             setSelectedDay(day);
                           }}
-                          className="w-full text-left px-1.5 py-0.5 text-[10px] font-medium text-indigo-400 hover:text-indigo-300"
+                          className="w-full text-left px-1.5 py-0.5 text-[10px] font-medium text-primary hover:underline"
                         >
                           +{overflowCount} more
                         </button>
@@ -388,16 +388,16 @@ export default function CalendarPage() {
         </div>
 
         {/* Selected Day Agenda Sidebar */}
-        <aside className="rounded-2xl border border-neutral-800 bg-neutral-900/60 p-5 space-y-4">
+        <aside className="rounded-2xl border border-border bg-surface p-5 space-y-4">
           <div className="flex items-start justify-between gap-2">
             <div>
-              <p className="text-[11px] uppercase tracking-wider font-semibold text-indigo-400">
+              <p className="text-[11px] uppercase tracking-wider font-semibold text-primary">
                 {isToday(selectedDay) ? "Today" : format(selectedDay, "EEEE")}
               </p>
-              <h2 className="text-base font-bold text-white mt-0.5">
+              <h2 className="text-base font-bold text-foreground mt-0.5">
                 {format(selectedDay, "MMMM d, yyyy")}
               </h2>
-              <p className="text-xs text-neutral-400 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {selectedDayPosts.length} {selectedDayPosts.length === 1 ? "post" : "posts"}
               </p>
             </div>
@@ -406,16 +406,16 @@ export default function CalendarPage() {
               type="button"
               onClick={() => openCreateForDate(selectedDay)}
               aria-label={`Add post on ${format(selectedDay, "MMM d")}`}
-              className="p-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
+              className="p-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground shadow-sm transition"
             >
               <Plus className="h-4 w-4" />
             </button>
           </div>
 
           {/* Legend */}
-          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-neutral-800 text-[11px] text-neutral-400">
+          <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-border text-[11px] text-muted-foreground">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              <span className="h-2 w-2 rounded-full bg-success" />
               Posted
             </span>
             <span className="inline-flex items-center gap-1.5">
@@ -423,19 +423,19 @@ export default function CalendarPage() {
               Scheduled
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-2 w-2 rounded-full bg-rose-400" />
+              <span className="h-2 w-2 rounded-full bg-danger" />
               Failed
             </span>
           </div>
 
           {selectedDayPosts.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-neutral-800 p-6 text-center bg-neutral-950/40 space-y-2.5">
-              <CalendarDays className="h-7 w-7 text-neutral-600 mx-auto" />
-              <p className="text-xs font-medium text-neutral-300">No posts on this date</p>
+            <div className="rounded-xl border border-dashed border-border p-6 text-center bg-surface-muted/30 space-y-2.5">
+              <CalendarDays className="h-7 w-7 text-subtle-foreground mx-auto" />
+              <p className="text-xs font-medium text-foreground">No posts on this date</p>
               <button
                 type="button"
                 onClick={() => openCreateForDate(selectedDay)}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium transition"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium transition"
               >
                 <Plus className="h-3.5 w-3.5" />
                 <span>Create Post</span>
@@ -450,7 +450,7 @@ export default function CalendarPage() {
                     <button
                       type="button"
                       onClick={() => setActivePost(post)}
-                      className="w-full text-left p-3.5 rounded-xl bg-neutral-800/50 hover:bg-neutral-800 border border-neutral-700/60 hover:border-neutral-600 transition space-y-2"
+                      className="w-full text-left p-3.5 rounded-xl bg-surface-muted hover:bg-surface border border-border hover:border-border-strong transition space-y-2"
                     >
                       <div className="flex items-center justify-between gap-2">
                         <span
@@ -460,13 +460,13 @@ export default function CalendarPage() {
                         >
                           {post.status}
                         </span>
-                        <span className="text-[11px] text-neutral-400 flex items-center gap-1 font-mono">
+                        <span className="text-[11px] text-muted-foreground flex items-center gap-1 font-mono">
                           <Clock className="h-3 w-3" />
                           {format(date, "h:mm a")}
                         </span>
                       </div>
 
-                      <p className="text-xs font-semibold text-white truncate">
+                      <p className="text-xs font-semibold text-foreground truncate">
                         {linkedContent?.title || `Content ${post.content_id}`}
                       </p>
 
@@ -475,7 +475,7 @@ export default function CalendarPage() {
                           {post.targets.map((t) => (
                             <span
                               key={t._id}
-                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-neutral-900 text-sky-400 border border-neutral-700/70"
+                              className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-surface text-sky-400 border border-border"
                             >
                               {t.platform_code}
                             </span>

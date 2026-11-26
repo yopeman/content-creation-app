@@ -12,9 +12,7 @@ import {
   Edit2,
   CheckCircle2,
   AlertCircle,
-  ExternalLink,
   Loader2,
-  ShieldCheck,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 
@@ -115,11 +113,11 @@ export default function PlatformSettingsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <Radio className="h-6 w-6 text-indigo-400" />
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+            <Radio className="h-6 w-6 text-primary" />
             <span>Connected Platforms</span>
           </h1>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Connect third-party social media accounts to enable direct and scheduled publishing.
           </p>
         </div>
@@ -131,7 +129,7 @@ export default function PlatformSettingsPage() {
             setChatId("");
             setIsConnectOpen(true);
           }}
-          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+          className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition"
         >
           <Plus className="h-4 w-4" />
           <span>Connect Platform</span>
@@ -140,17 +138,17 @@ export default function PlatformSettingsPage() {
 
       {/* Connected Channels List */}
       <div className="space-y-4">
-        <h2 className="text-base font-semibold text-white">Active Connections</h2>
+        <h2 className="text-base font-semibold text-foreground">Active Connections</h2>
 
         {isLoading ? (
-          <div className="h-32 rounded-2xl bg-neutral-900 border border-neutral-800 animate-pulse flex items-center justify-center text-xs text-neutral-500">
+          <div className="h-32 rounded-2xl bg-surface border border-border animate-pulse flex items-center justify-center text-xs text-muted-foreground">
             Loading platforms...
           </div>
         ) : platforms.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-neutral-800 p-8 text-center bg-neutral-900/30">
-            <Radio className="h-8 w-8 text-neutral-600 mx-auto mb-2" />
-            <h3 className="text-sm font-semibold text-white">No platforms connected</h3>
-            <p className="text-xs text-neutral-500 mt-1">
+          <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-surface/30">
+            <Radio className="h-8 w-8 text-subtle-foreground mx-auto mb-2" />
+            <h3 className="text-sm font-semibold text-foreground">No platforms connected</h3>
+            <p className="text-xs text-muted-foreground mt-1">
               Connect a Telegram channel or group using your bot token to start dispatching content.
             </p>
           </div>
@@ -159,7 +157,7 @@ export default function PlatformSettingsPage() {
             {platforms.map((p) => (
               <div
                 key={p._id}
-                className="p-5 rounded-2xl bg-neutral-900/70 border border-neutral-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                className="p-5 rounded-2xl bg-surface border border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4"
               >
                 <div className="flex items-center gap-4">
                   <div className="h-10 w-10 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center font-bold text-sm shrink-0">
@@ -167,13 +165,13 @@ export default function PlatformSettingsPage() {
                   </div>
                   <div>
                     <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold text-white">{p.account_name}</h3>
-                      <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-medium">
+                      <h3 className="text-sm font-semibold text-foreground">{p.account_name}</h3>
+                      <span className="inline-flex items-center gap-1 text-[11px] text-success font-medium">
                         <CheckCircle2 className="h-3 w-3" />
                         <span>Connected</span>
                       </span>
                     </div>
-                    <div className="flex items-center gap-3 text-[11px] text-neutral-400 mt-0.5">
+                    <div className="flex items-center gap-3 text-[11px] text-muted-foreground mt-0.5">
                       <span>ID: {p.platform_account_id}</span>
                       <span>•</span>
                       <span>Synced {formatDate(p.updated_at)}</span>
@@ -185,7 +183,7 @@ export default function PlatformSettingsPage() {
                   <button
                     onClick={() => syncMutation.mutate(p._id)}
                     disabled={syncMutation.isPending}
-                    className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition"
+                    className="p-2 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
                     title="Re-verify credentials"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
@@ -198,7 +196,7 @@ export default function PlatformSettingsPage() {
                       setBotToken("");
                       setError(null);
                     }}
-                    className="p-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 transition"
+                    className="p-2 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
                     title="Edit Credentials"
                   >
                     <Edit2 className="h-3.5 w-3.5" />
@@ -210,7 +208,7 @@ export default function PlatformSettingsPage() {
                         disconnectMutation.mutate(p._id);
                       }
                     }}
-                    className="p-2 rounded-lg bg-neutral-800 hover:bg-red-500/10 text-neutral-400 hover:text-red-400 transition"
+                    className="p-2 rounded-lg bg-surface-muted hover:bg-danger-soft text-muted-foreground hover:text-danger border border-border transition"
                     title="Disconnect"
                   >
                     <Trash2 className="h-3.5 w-3.5" />
@@ -225,21 +223,21 @@ export default function PlatformSettingsPage() {
       {/* Connect Modal */}
       {isConnectOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-white">Connect Telegram Channel</h3>
-            <p className="text-xs text-neutral-400">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-foreground">Connect Telegram Channel</h3>
+            <p className="text-xs text-muted-foreground">
               Provide your bot token from @BotFather and your channel username. Make sure your bot is added as an administrator to the channel.
             </p>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <div className="p-3 rounded-lg bg-danger-soft border border-danger/20 text-danger text-xs">
                 {error}
               </div>
             )}
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Telegram Bot Token
                 </label>
                 <input
@@ -247,12 +245,12 @@ export default function PlatformSettingsPage() {
                   value={botToken}
                   onChange={(e) => setBotToken(e.target.value)}
                   placeholder="123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-neutral-800/80 border border-neutral-700/80 text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Channel Username or Chat ID
                 </label>
                 <input
@@ -260,7 +258,7 @@ export default function PlatformSettingsPage() {
                   value={chatId}
                   onChange={(e) => setChatId(e.target.value)}
                   placeholder="@my_channel_username"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-neutral-800/80 border border-neutral-700/80 text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -269,7 +267,7 @@ export default function PlatformSettingsPage() {
               <button
                 type="button"
                 onClick={() => setIsConnectOpen(false)}
-                className="px-4 py-2 rounded-lg bg-neutral-800 text-neutral-300 text-xs font-medium hover:bg-neutral-700"
+                className="px-4 py-2 rounded-lg bg-surface-muted text-muted-foreground text-xs font-medium hover:text-foreground border border-border"
               >
                 Cancel
               </button>
@@ -277,7 +275,7 @@ export default function PlatformSettingsPage() {
                 type="button"
                 onClick={() => connectMutation.mutate()}
                 disabled={!botToken || !chatId || connectMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
               >
                 {connectMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 <span>Connect & Verify</span>
@@ -290,21 +288,21 @@ export default function PlatformSettingsPage() {
       {/* Edit Modal */}
       {editingPlatform && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in">
-          <div className="w-full max-w-md bg-neutral-900 border border-neutral-800 rounded-2xl p-6 shadow-2xl space-y-4">
-            <h3 className="text-base font-semibold text-white">Edit Telegram Connection</h3>
-            <p className="text-xs text-neutral-400">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-4">
+            <h3 className="text-base font-semibold text-foreground">Edit Telegram Connection</h3>
+            <p className="text-xs text-muted-foreground">
               Update your bot token or channel ID for {editingPlatform.account_name}.
             </p>
 
             {error && (
-              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs">
+              <div className="p-3 rounded-lg bg-danger-soft border border-danger/20 text-danger text-xs">
                 {error}
               </div>
             )}
 
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   New Bot Token (leave blank to keep current)
                 </label>
                 <input
@@ -312,12 +310,12 @@ export default function PlatformSettingsPage() {
                   value={botToken}
                   onChange={(e) => setBotToken(e.target.value)}
                   placeholder="Leave empty to keep existing token"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-neutral-800/80 border border-neutral-700/80 text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-neutral-300 mb-1">
+                <label className="block text-xs font-semibold text-foreground mb-1">
                   Channel Username or Chat ID
                 </label>
                 <input
@@ -325,7 +323,7 @@ export default function PlatformSettingsPage() {
                   value={chatId}
                   onChange={(e) => setChatId(e.target.value)}
                   placeholder="@my_channel_username"
-                  className="w-full px-3.5 py-2.5 rounded-lg bg-neutral-800/80 border border-neutral-700/80 text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
                 />
               </div>
             </div>
@@ -334,7 +332,7 @@ export default function PlatformSettingsPage() {
               <button
                 type="button"
                 onClick={() => setEditingPlatform(null)}
-                className="px-4 py-2 rounded-lg bg-neutral-800 text-neutral-300 text-xs font-medium hover:bg-neutral-700"
+                className="px-4 py-2 rounded-lg bg-surface-muted text-muted-foreground text-xs font-medium hover:text-foreground border border-border"
               >
                 Cancel
               </button>
@@ -342,7 +340,7 @@ export default function PlatformSettingsPage() {
                 type="button"
                 onClick={() => editMutation.mutate(editingPlatform._id)}
                 disabled={editMutation.isPending}
-                className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
+                className="px-4 py-2 rounded-lg bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-medium disabled:opacity-50 flex items-center gap-1.5"
               >
                 {editMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 <span>Save Changes</span>

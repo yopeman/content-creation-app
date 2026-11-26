@@ -13,12 +13,12 @@ import {
   CalendarDays,
   Radio,
   LogOut,
-  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { ProfileEditModal } from "@/components/layout/profile-edit-modal";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 
 const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
@@ -36,15 +36,15 @@ export function Sidebar() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
-    <aside className="w-64 border-r border-neutral-800 bg-neutral-900/50 flex flex-col shrink-0 h-full">
+    <aside className="w-64 border-r border-border bg-surface flex flex-col shrink-0 h-full">
       {/* Brand Header */}
-      <div className="h-16 shrink-0 flex items-center px-6 gap-3 border-b border-neutral-800">
-        <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/20">
+      <div className="h-16 shrink-0 flex items-center px-6 gap-3 border-b border-border">
+        <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20">
           <Sparkles className="h-5 w-5" />
         </div>
         <div>
-          <span className="font-bold text-white text-base tracking-tight">Yope</span>
-          <span className="text-[10px] text-indigo-400 block -mt-1 font-medium">CREATOR AI</span>
+          <span className="font-bold text-foreground text-base tracking-tight">Yope</span>
+          <span className="text-[10px] text-primary block -mt-1 font-semibold tracking-wide">CREATOR AI</span>
         </div>
       </div>
 
@@ -62,8 +62,8 @@ export function Sidebar() {
               className={cn(
                 "flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition",
                 isActive
-                  ? "bg-indigo-600 text-white shadow-md shadow-indigo-600/20 font-semibold"
-                  : "text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/60"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/20 font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-muted"
               )}
             >
               <Icon className="h-4 w-4 shrink-0" />
@@ -74,18 +74,20 @@ export function Sidebar() {
         })}
       </nav>
 
-      {/* User Section */}
-      <div className="p-3 border-t border-neutral-800 shrink-0">
-        <div className="p-2 rounded-xl bg-neutral-800/40 border border-neutral-800/80 flex items-center justify-between gap-1">
+      {/* Theme Switcher & User Section */}
+      <div className="p-3 border-t border-border shrink-0 space-y-2">
+        <ThemeSwitcher />
+
+        <div className="p-2 rounded-xl bg-surface-muted border border-border flex items-center justify-between gap-1">
           <button
             type="button"
             onClick={() => setIsProfileModalOpen(true)}
             title="Edit profile"
-            className="flex-1 min-w-0 p-1.5 rounded-lg flex items-center justify-between gap-2 text-left hover:bg-neutral-800/70 transition group"
+            className="flex-1 min-w-0 p-1.5 rounded-lg flex items-center justify-between gap-2 text-left hover:bg-surface transition group"
           >
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-white truncate">{user?.name || "Creator"}</p>
-              <p className="text-[11px] text-neutral-400 truncate">{user?.email || "..."}</p>
+              <p className="text-xs font-semibold text-foreground truncate">{user?.name || "Creator"}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{user?.email || "..."}</p>
             </div>
           </button>
           <button
@@ -93,7 +95,7 @@ export function Sidebar() {
             onClick={logout}
             title="Sign out"
             aria-label="Sign out"
-            className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition shrink-0"
+            className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger-soft rounded-lg transition shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </button>

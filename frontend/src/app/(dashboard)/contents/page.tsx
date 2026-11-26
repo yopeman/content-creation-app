@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
-import { Content, ContentStatus, ContentType, Platform } from "@/types";
+import { Content, ContentStatus, Platform } from "@/types";
 import {
   FileText,
   Plus,
@@ -23,9 +23,6 @@ import {
   Archive,
   AlertCircle,
   Loader2,
-  ExternalLink,
-  ChevronRight,
-  MoreVertical,
   Check,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
@@ -81,7 +78,7 @@ export default function ContentsPage() {
     },
   });
 
-  // Dispatch post mutation (supports immediate publishing and background scheduling)
+  // Dispatch post mutation
   const dispatchMutation = useMutation({
     mutationFn: async ({
       contentId,
@@ -129,7 +126,6 @@ export default function ContentsPage() {
 
   // Filtering
   const filteredContents = contents.filter((item) => {
-    // Search query
     const matchesSearch =
       item.title.toLowerCase().includes(search.toLowerCase()) ||
       item.details.some(
@@ -139,12 +135,10 @@ export default function ContentsPage() {
       );
     if (!matchesSearch) return false;
 
-    // Status filter
     if (statusFilter !== "all" && item.status !== statusFilter) {
       return false;
     }
 
-    // Type filter
     if (typeFilter !== "all") {
       const hasType = item.details.some((d) => d.type === typeFilter);
       if (!hasType) return false;
@@ -162,7 +156,7 @@ export default function ContentsPage() {
     switch (status) {
       case "ready":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-success-soft text-success border border-success/20">
             <CheckCircle2 className="h-3 w-3" /> Ready
           </span>
         );
@@ -174,13 +168,13 @@ export default function ContentsPage() {
         );
       case "draft":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-neutral-800 text-neutral-300 border border-neutral-700">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-surface-muted text-foreground border border-border">
             <Clock className="h-3 w-3" /> Draft
           </span>
         );
       case "generating":
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-500/10 text-amber-400 border border-amber-500/20">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-soft text-warning border border-warning/20">
             <Loader2 className="h-3 w-3 animate-spin" /> Generating
           </span>
         );
@@ -192,7 +186,7 @@ export default function ContentsPage() {
         );
       default:
         return (
-          <span className="px-2.5 py-0.5 rounded-full text-xs bg-neutral-800 text-neutral-400">
+          <span className="px-2.5 py-0.5 rounded-full text-xs bg-surface-muted text-muted-foreground border border-border">
             {status}
           </span>
         );
@@ -204,11 +198,11 @@ export default function ContentsPage() {
       {/* Top Banner / Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-            <FileText className="h-6 w-6 text-indigo-400" />
+          <h1 className="text-2xl font-bold text-foreground tracking-tight flex items-center gap-2">
+            <FileText className="h-6 w-6 text-primary" />
             <span>Content Manager</span>
           </h1>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p className="text-xs text-muted-foreground mt-1">
             Create, upload, adjust, and organize your social content, media, and copy manually.
           </p>
         </div>
@@ -216,7 +210,7 @@ export default function ContentsPage() {
         <div className="flex items-center gap-2.5">
           <Link
             href="/studio"
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium border border-neutral-700 transition"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
           >
             <Wand2 className="h-3.5 w-3.5 text-purple-400" />
             <span>AI Studio</span>
@@ -224,7 +218,7 @@ export default function ContentsPage() {
           </Link>
           <Link
             href="/contents/new"
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 transition"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition"
           >
             <Plus className="h-4 w-4" />
             <span>Create Manual Content</span>
@@ -234,35 +228,35 @@ export default function ContentsPage() {
 
       {/* KPI Stats Ribbon */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-          <p className="text-[11px] font-medium text-neutral-400">Total Contents</p>
-          <p className="text-xl font-bold text-white mt-1">{contents.length}</p>
+        <div className="p-4 rounded-xl bg-surface border border-border">
+          <p className="text-[11px] font-medium text-muted-foreground">Total Contents</p>
+          <p className="text-xl font-bold text-foreground mt-1">{contents.length}</p>
         </div>
-        <div className="p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-          <p className="text-[11px] font-medium text-emerald-400">Ready to Publish</p>
-          <p className="text-xl font-bold text-emerald-400 mt-1">{readyCount}</p>
+        <div className="p-4 rounded-xl bg-surface border border-border">
+          <p className="text-[11px] font-medium text-success">Ready to Publish</p>
+          <p className="text-xl font-bold text-success mt-1">{readyCount}</p>
         </div>
-        <div className="p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
+        <div className="p-4 rounded-xl bg-surface border border-border">
           <p className="text-[11px] font-medium text-blue-400">Approved</p>
           <p className="text-xl font-bold text-blue-400 mt-1">{approvedCount}</p>
         </div>
-        <div className="p-4 rounded-xl bg-neutral-900/80 border border-neutral-800">
-          <p className="text-[11px] font-medium text-neutral-400">Drafts</p>
-          <p className="text-xl font-bold text-neutral-300 mt-1">{draftCount}</p>
+        <div className="p-4 rounded-xl bg-surface border border-border">
+          <p className="text-[11px] font-medium text-muted-foreground">Drafts</p>
+          <p className="text-xl font-bold text-foreground mt-1">{draftCount}</p>
         </div>
       </div>
 
       {/* Search and Filters Bar */}
-      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-neutral-900/60 p-3 rounded-2xl border border-neutral-800">
+      <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between bg-surface p-3 rounded-2xl border border-border">
         {/* Search Input */}
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search contents by title, script, or copy..."
-            className="w-full pl-10 pr-4 py-2 rounded-xl bg-neutral-800/80 border border-neutral-700/80 text-white placeholder-neutral-500 text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
+            className="w-full pl-10 pr-4 py-2 rounded-xl bg-surface-muted border border-border text-foreground placeholder-subtle-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary transition"
           />
         </div>
 
@@ -274,8 +268,8 @@ export default function ContentsPage() {
               onClick={() => setStatusFilter(st)}
               className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition shrink-0 ${
                 statusFilter === st
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-neutral-400 hover:text-white hover:bg-neutral-800"
+                  ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                  : "text-muted-foreground hover:text-foreground hover:bg-surface-muted"
               }`}
             >
               {st}
@@ -285,11 +279,11 @@ export default function ContentsPage() {
 
         {/* Type Filter Dropdown */}
         <div className="flex items-center gap-2 shrink-0">
-          <Filter className="h-3.5 w-3.5 text-neutral-400" />
+          <Filter className="h-3.5 w-3.5 text-muted-foreground" />
           <select
             value={typeFilter}
             onChange={(e) => setTypeFilter(e.target.value)}
-            className="px-3 py-1.5 rounded-lg bg-neutral-800 border border-neutral-700 text-xs text-neutral-200 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            className="px-3 py-1.5 rounded-lg bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
           >
             <option value="all">All Modalities</option>
             <option value="text">Text / Copy</option>
@@ -302,15 +296,15 @@ export default function ContentsPage() {
 
       {/* Content List */}
       {isLoading ? (
-        <div className="h-64 flex flex-col items-center justify-center text-neutral-500">
-          <Loader2 className="h-6 w-6 animate-spin mb-2" />
+        <div className="h-64 flex flex-col items-center justify-center text-muted-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
           <span className="text-xs">Loading contents...</span>
         </div>
       ) : filteredContents.length === 0 ? (
-        <div className="text-center py-16 px-4 border border-dashed border-neutral-800 rounded-2xl bg-neutral-900/30">
-          <FileText className="h-10 w-10 text-neutral-600 mx-auto mb-3" />
-          <h3 className="text-base font-semibold text-white">No contents found</h3>
-          <p className="text-xs text-neutral-400 mt-1 max-w-sm mx-auto">
+        <div className="text-center py-16 px-4 border border-dashed border-border rounded-2xl bg-surface/30">
+          <FileText className="h-10 w-10 text-subtle-foreground mx-auto mb-3" />
+          <h3 className="text-base font-semibold text-foreground">No contents found</h3>
+          <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
             {search || statusFilter !== "all" || typeFilter !== "all"
               ? "Try adjusting your search criteria or filters."
               : "Start by manually creating your first content piece or upload media."}
@@ -318,7 +312,7 @@ export default function ContentsPage() {
           <div className="mt-5 flex justify-center gap-3">
             <Link
               href="/contents/new"
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md transition"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md transition"
             >
               <Plus className="h-4 w-4" />
               <span>Create Content Manually</span>
@@ -336,7 +330,7 @@ export default function ContentsPage() {
             return (
               <div
                 key={content._id}
-                className="group relative rounded-2xl bg-neutral-900 border border-neutral-800 hover:border-neutral-700 p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between"
+                className="group relative rounded-2xl bg-surface border border-border hover:border-border-strong p-5 shadow-sm hover:shadow-md transition flex flex-col justify-between"
               >
                 <div>
                   {/* Card Header */}
@@ -344,11 +338,11 @@ export default function ContentsPage() {
                     <div className="min-w-0 flex-1">
                       <Link
                         href={`/contents/${content._id}`}
-                        className="text-base font-bold text-white hover:text-indigo-400 transition truncate block"
+                        className="text-base font-bold text-foreground hover:text-primary transition truncate block"
                       >
                         {content.title}
                       </Link>
-                      <p className="text-[11px] text-neutral-400 mt-0.5">
+                      <p className="text-[11px] text-muted-foreground mt-0.5">
                         Updated {formatDate(content.updated_at)}
                       </p>
                     </div>
@@ -358,22 +352,22 @@ export default function ContentsPage() {
                   {/* Modality Badges */}
                   <div className="flex flex-wrap gap-1.5 mt-3">
                     {textDetail && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700/60">
-                        <FileText className="h-3 w-3 text-indigo-400" /> Text
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-muted text-foreground border border-border">
+                        <FileText className="h-3 w-3 text-primary" /> Text
                       </span>
                     )}
                     {imageDetail && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-muted text-foreground border border-border">
                         <ImageIcon className="h-3 w-3 text-pink-400" /> Image
                       </span>
                     )}
                     {audioDetail && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-muted text-foreground border border-border">
                         <Mic className="h-3 w-3 text-emerald-400" /> Audio
                       </span>
                     )}
                     {videoDetail && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-neutral-800 text-neutral-300 border border-neutral-700/60">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[11px] font-medium bg-surface-muted text-foreground border border-border">
                         <Video className="h-3 w-3 text-cyan-400" /> Video
                       </span>
                     )}
@@ -382,7 +376,7 @@ export default function ContentsPage() {
                   {/* Visual Preview / Thumbnail Area */}
                   <div className="mt-4">
                     {imageDetail?.path ? (
-                      <div className="relative rounded-xl overflow-hidden aspect-video bg-neutral-950 border border-neutral-800/80">
+                      <div className="relative rounded-xl overflow-hidden aspect-video bg-background border border-border">
                         <img
                           src={getMediaUrl(imageDetail.path)}
                           alt={content.title}
@@ -390,7 +384,7 @@ export default function ContentsPage() {
                         />
                       </div>
                     ) : videoDetail?.path ? (
-                      <div className="relative rounded-xl overflow-hidden aspect-video bg-neutral-950 border border-neutral-800 flex items-center justify-center">
+                      <div className="relative rounded-xl overflow-hidden aspect-video bg-background border border-border flex items-center justify-center">
                         <video
                           src={getMediaUrl(videoDetail.path)}
                           className="w-full h-full object-cover"
@@ -401,12 +395,12 @@ export default function ContentsPage() {
                         </div>
                       </div>
                     ) : audioDetail?.path ? (
-                      <div className="p-3.5 rounded-xl bg-neutral-800/40 border border-neutral-800 flex items-center gap-3">
+                      <div className="p-3.5 rounded-xl bg-surface-muted border border-border flex items-center gap-3">
                         <div className="h-9 w-9 rounded-lg bg-emerald-500/10 flex items-center justify-center text-emerald-400 shrink-0">
                           <Mic className="h-4 w-4" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className="text-xs font-medium text-neutral-300 truncate">Audio Track</p>
+                          <p className="text-xs font-medium text-foreground truncate">Audio Track</p>
                           <audio
                             src={getMediaUrl(audioDetail.path)}
                             controls
@@ -415,11 +409,11 @@ export default function ContentsPage() {
                         </div>
                       </div>
                     ) : textDetail?.text ? (
-                      <div className="p-3.5 rounded-xl bg-neutral-800/30 border border-neutral-800/80 text-xs text-neutral-300 line-clamp-3 italic">
+                      <div className="p-3.5 rounded-xl bg-surface-muted border border-border text-xs text-foreground line-clamp-3 italic">
                         &ldquo;{textDetail.text}&rdquo;
                       </div>
                     ) : (
-                      <div className="p-6 rounded-xl bg-neutral-800/20 border border-neutral-800/60 text-center text-neutral-500 text-xs">
+                      <div className="p-6 rounded-xl bg-surface-muted/40 border border-border text-center text-muted-foreground text-xs">
                         No details attached yet
                       </div>
                     )}
@@ -427,27 +421,27 @@ export default function ContentsPage() {
 
                   {/* Text snippet if image is present */}
                   {imageDetail && textDetail?.text && (
-                    <p className="mt-3 text-xs text-neutral-400 line-clamp-2">
+                    <p className="mt-3 text-xs text-muted-foreground line-clamp-2">
                       {textDetail.text}
                     </p>
                   )}
                 </div>
 
                 {/* Card Actions Footer */}
-                <div className="mt-5 pt-4 border-t border-neutral-800/80 flex items-center justify-between gap-2">
+                <div className="mt-5 pt-4 border-t border-border flex items-center justify-between gap-2">
                   <div className="flex items-center gap-1.5">
                     <Link
                       href={`/contents/${content._id}`}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-200 text-xs font-medium transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-muted hover:bg-surface text-foreground text-xs font-medium border border-border transition"
                       title="Adjust & Edit"
                     >
-                      <Edit3 className="h-3.5 w-3.5 text-indigo-400" />
+                      <Edit3 className="h-3.5 w-3.5 text-primary" />
                       <span>Adjust</span>
                     </Link>
 
                     <button
                       onClick={() => setDispatchContent(content)}
-                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-medium transition"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary-soft hover:bg-primary/20 text-primary border border-primary-border text-xs font-medium transition"
                       title="Dispatch / Publish"
                     >
                       <Send className="h-3.5 w-3.5" />
@@ -465,7 +459,7 @@ export default function ContentsPage() {
                           status: e.target.value as ContentStatus,
                         })
                       }
-                      className="bg-neutral-800/80 text-[11px] text-neutral-300 border border-neutral-700/80 rounded-lg px-2 py-1 focus:outline-none"
+                      className="bg-surface-muted text-[11px] text-foreground border border-border rounded-lg px-2 py-1 focus:outline-none"
                     >
                       <option value="draft">Draft</option>
                       <option value="ready">Ready</option>
@@ -480,7 +474,7 @@ export default function ContentsPage() {
                           deleteMutation.mutate(content._id);
                         }
                       }}
-                      className="p-1.5 text-neutral-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+                      className="p-1.5 text-muted-foreground hover:text-danger hover:bg-danger-soft rounded-lg transition"
                       title="Delete Content"
                     >
                       <Trash2 className="h-4 w-4" />
@@ -496,10 +490,10 @@ export default function ContentsPage() {
       {/* Dispatch Modal */}
       {dispatchContent && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+          <div className="bg-surface border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Send className="h-4 w-4 text-indigo-400" />
+              <h3 className="text-base font-bold text-foreground flex items-center gap-2">
+                <Send className="h-4 w-4 text-primary" />
                 <span>Dispatch Content</span>
               </h3>
               <button
@@ -508,22 +502,22 @@ export default function ContentsPage() {
                   setDispatchError(null);
                   setDispatchSuccess(null);
                 }}
-                className="text-neutral-400 hover:text-white text-xs"
+                className="text-muted-foreground hover:text-foreground text-xs"
               >
                 Close
               </button>
             </div>
 
             {/* Content summary and items list */}
-            <div className="p-3.5 rounded-xl bg-neutral-800/50 border border-neutral-700/60 space-y-2">
-              <p className="text-xs font-semibold text-white truncate">{dispatchContent.title}</p>
+            <div className="p-3.5 rounded-xl bg-surface-muted border border-border space-y-2">
+              <p className="text-xs font-semibold text-foreground truncate">{dispatchContent.title}</p>
               <div className="flex flex-wrap gap-1.5 pt-1">
                 {dispatchContent.details.map((d, i) => (
                   <span
                     key={i}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-neutral-900 text-neutral-300 border border-neutral-700/80"
+                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-surface text-foreground border border-border"
                   >
-                    {d.type === "text" && <FileText className="h-3 w-3 text-indigo-400" />}
+                    {d.type === "text" && <FileText className="h-3 w-3 text-primary" />}
                     {d.type === "image" && <ImageIcon className="h-3 w-3 text-pink-400" />}
                     {d.type === "audio" && <Mic className="h-3 w-3 text-emerald-400" />}
                     {d.type === "video" && <Video className="h-3 w-3 text-cyan-400" />}
@@ -531,20 +525,20 @@ export default function ContentsPage() {
                   </span>
                 ))}
               </div>
-              <p className="text-[10px] text-neutral-400">
+              <p className="text-[10px] text-muted-foreground">
                 All {dispatchContent.details.length} content item(s) will be published in order to the destination.
               </p>
             </div>
 
             {/* Mode Toggle: Direct vs Scheduled */}
-            <div className="grid grid-cols-2 p-1 bg-neutral-800/80 rounded-xl border border-neutral-700/60 text-xs font-medium">
+            <div className="grid grid-cols-2 p-1 bg-surface-muted rounded-xl border border-border text-xs font-medium">
               <button
                 type="button"
                 onClick={() => setIsScheduledMode(false)}
                 className={`py-1.5 rounded-lg transition text-center ${
                   !isScheduledMode
-                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                    : "text-neutral-400 hover:text-white"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Publish Directly
@@ -554,7 +548,6 @@ export default function ContentsPage() {
                 onClick={() => {
                   setIsScheduledMode(true);
                   if (!scheduledDateTime) {
-                    // Default to 1 hour from now
                     const d = new Date(Date.now() + 3600 * 1000);
                     const pad = (n: number) => String(n).padStart(2, "0");
                     const formatted = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
@@ -563,8 +556,8 @@ export default function ContentsPage() {
                 }}
                 className={`py-1.5 rounded-lg transition text-center ${
                   isScheduledMode
-                    ? "bg-indigo-600 text-white shadow-sm font-semibold"
-                    : "text-neutral-400 hover:text-white"
+                    ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Schedule for Later
@@ -573,44 +566,44 @@ export default function ContentsPage() {
 
             {/* Date Time Picker for Scheduling */}
             {isScheduledMode && (
-              <div className="space-y-1.5 p-3 rounded-xl bg-neutral-800/40 border border-neutral-700/60">
-                <label className="block text-xs font-medium text-neutral-300">
+              <div className="space-y-1.5 p-3 rounded-xl bg-surface-muted border border-border">
+                <label className="block text-xs font-medium text-foreground">
                   Select Scheduled Date & Time
                 </label>
                 <input
                   type="datetime-local"
                   value={scheduledDateTime}
                   onChange={(e) => setScheduledDateTime(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-surface border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 />
-                <p className="text-[10px] text-neutral-400 mt-1">
+                <p className="text-[10px] text-muted-foreground mt-1">
                   The background worker will automatically dispatch this post when the scheduled time arrives.
                 </p>
               </div>
             )}
 
             {dispatchError && (
-              <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-danger-soft border border-danger/20 text-danger text-xs flex items-center gap-2">
                 <AlertCircle className="h-4 w-4 shrink-0" />
                 <span>{dispatchError}</span>
               </div>
             )}
 
             {dispatchSuccess && (
-              <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
+              <div className="p-3 rounded-xl bg-success-soft border border-success/20 text-success text-xs flex items-center gap-2">
                 <CheckCircle2 className="h-4 w-4 shrink-0" />
                 <span>{dispatchSuccess}</span>
               </div>
             )}
 
             <div>
-              <label className="block text-xs font-medium text-neutral-300 mb-1.5">
+              <label className="block text-xs font-medium text-foreground mb-1.5">
                 Select Connected Destination Platform
               </label>
               {platforms.length === 0 ? (
-                <div className="text-xs text-neutral-400 p-3 bg-neutral-800/40 rounded-xl border border-neutral-700">
+                <div className="text-xs text-muted-foreground p-3 bg-surface-muted rounded-xl border border-border">
                   No platforms connected.{" "}
-                  <Link href="/settings/platforms" className="text-indigo-400 underline">
+                  <Link href="/settings/platforms" className="text-primary underline">
                     Connect Telegram bot now
                   </Link>
                 </div>
@@ -618,7 +611,7 @@ export default function ContentsPage() {
                 <select
                   value={selectedPlatformId || (platforms[0]?._id ?? "")}
                   onChange={(e) => setSelectedPlatformId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  className="w-full px-3 py-2 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
                 >
                   {platforms.map((p) => (
                     <option key={p._id} value={p._id}>
@@ -633,7 +626,7 @@ export default function ContentsPage() {
               <button
                 type="button"
                 onClick={() => setDispatchContent(null)}
-                className="px-3.5 py-2 rounded-xl text-xs text-neutral-300 hover:bg-neutral-800 transition"
+                className="px-3.5 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
               >
                 Cancel
               </button>
@@ -651,7 +644,7 @@ export default function ContentsPage() {
                     });
                   }
                 }}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md disabled:opacity-50 transition"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
               >
                 {dispatchMutation.isPending ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />

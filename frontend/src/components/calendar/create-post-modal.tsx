@@ -216,20 +216,20 @@ export function CreatePostModal({
         onClose();
       }}
       {...({ closedby: "any" } as Record<string, string>)}
-      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-neutral-800 bg-neutral-900 p-0 text-neutral-100 shadow-2xl"
+      className="m-auto w-[calc(100%-2rem)] max-w-lg rounded-2xl border border-border bg-surface p-0 text-foreground shadow-2xl backdrop:bg-black/70 backdrop:backdrop-blur-sm"
     >
       <form onSubmit={handleSubmit} className="p-6 space-y-5">
         {/* Header */}
         <div className="flex items-center justify-between">
-          <h1 id={titleId} className="text-base font-bold text-white flex items-center gap-2">
-            <CalendarPlus className="h-4 w-4 text-indigo-400" />
+          <h1 id={titleId} className="text-base font-bold text-foreground flex items-center gap-2">
+            <CalendarPlus className="h-4 w-4 text-primary" />
             <span>Create Post</span>
           </h1>
           <button
             type="button"
             onClick={onClose}
             aria-label="Close create post dialog"
-            className="p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-neutral-800 transition"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
           >
             <X className="h-4 w-4" />
           </button>
@@ -238,7 +238,7 @@ export function CreatePostModal({
         {formError && (
           <div
             role="alert"
-            className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300"
+            className="p-3 rounded-xl bg-danger-soft border border-danger/30 text-xs text-danger"
           >
             {formError}
           </div>
@@ -247,23 +247,23 @@ export function CreatePostModal({
         {/* Content Selector */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label htmlFor={contentSelectId} className="block text-xs font-medium text-neutral-300">
+            <label htmlFor={contentSelectId} className="block text-xs font-medium text-foreground">
               Content
             </label>
             <Link
               href="/contents/new"
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium"
+              className="text-[11px] text-primary hover:underline font-medium"
             >
               + New Content
             </Link>
           </div>
 
           {contents.length === 0 ? (
-            <div className="p-3.5 rounded-xl bg-neutral-800/50 border border-neutral-700/60 text-xs text-neutral-400 flex items-center justify-between gap-2">
+            <div className="p-3.5 rounded-xl bg-surface-muted border border-border text-xs text-muted-foreground flex items-center justify-between gap-2">
               <span>No content available yet.</span>
               <Link
                 href="/contents/new"
-                className="px-2.5 py-1 rounded-lg bg-indigo-600 text-white font-medium hover:bg-indigo-500 transition"
+                className="px-2.5 py-1 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary-hover transition"
               >
                 Create Content
               </Link>
@@ -276,7 +276,7 @@ export function CreatePostModal({
                 required
                 value={selectedContentId}
                 onChange={(e) => setSelectedContentId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {contents.map((c) => (
                   <option key={c._id} value={c._id}>
@@ -286,8 +286,8 @@ export function CreatePostModal({
               </select>
 
               {previewText && (
-                <p className="text-[11px] text-neutral-400 bg-neutral-800/40 border border-neutral-800 rounded-lg px-3 py-2 line-clamp-2 flex items-start gap-1.5">
-                  <FileText className="h-3.5 w-3.5 text-neutral-500 shrink-0 mt-0.5" />
+                <p className="text-[11px] text-muted-foreground bg-surface-muted/60 border border-border rounded-lg px-3 py-2 line-clamp-2 flex items-start gap-1.5">
+                  <FileText className="h-3.5 w-3.5 text-subtle-foreground shrink-0 mt-0.5" />
                   <span>{previewText}</span>
                 </p>
               )}
@@ -298,24 +298,24 @@ export function CreatePostModal({
         {/* Target Platforms */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-neutral-300">Target Platforms</span>
+            <span className="text-xs font-medium text-foreground">Target Platforms</span>
             <Link
               href="/settings/platforms"
-              className="text-[11px] text-indigo-400 hover:text-indigo-300 font-medium"
+              className="text-[11px] text-primary hover:underline font-medium"
             >
               Manage Platforms
             </Link>
           </div>
 
           {platforms.length === 0 ? (
-            <div className="p-3.5 rounded-xl bg-neutral-800/50 border border-neutral-700/60 text-xs text-neutral-400 flex items-center justify-between gap-2">
+            <div className="p-3.5 rounded-xl bg-surface-muted border border-border text-xs text-muted-foreground flex items-center justify-between gap-2">
               <span className="flex items-center gap-1.5">
-                <Radio className="h-3.5 w-3.5 text-amber-400" />
+                <Radio className="h-3.5 w-3.5 text-warning" />
                 <span>No connected platforms.</span>
               </span>
               <Link
                 href="/settings/platforms"
-                className="px-2.5 py-1 rounded-lg bg-neutral-700 text-white font-medium hover:bg-neutral-600 transition"
+                className="px-2.5 py-1 rounded-lg bg-surface text-foreground border border-border font-medium hover:bg-surface-muted transition"
               >
                 Connect
               </Link>
@@ -332,8 +332,8 @@ export function CreatePostModal({
                     onClick={() => togglePlatform(p._id)}
                     className={`p-2.5 rounded-xl border text-left transition flex items-center justify-between gap-2 ${
                       isSelected
-                        ? "bg-indigo-600/15 border-indigo-500/60 text-white"
-                        : "bg-neutral-800/50 border-neutral-700/60 text-neutral-300 hover:border-neutral-600"
+                        ? "bg-primary-soft border-primary-border text-foreground"
+                        : "bg-surface-muted border-border text-foreground hover:border-border-strong"
                     }`}
                   >
                     <div className="min-w-0">
@@ -349,8 +349,8 @@ export function CreatePostModal({
                     <span
                       className={`h-4 w-4 rounded flex items-center justify-center shrink-0 border ${
                         isSelected
-                          ? "bg-indigo-600 border-indigo-500 text-white"
-                          : "border-neutral-600 bg-neutral-900"
+                          ? "bg-primary border-primary text-primary-foreground"
+                          : "border-border bg-surface"
                       }`}
                     >
                       {isSelected && <Check className="h-3 w-3" />}
@@ -364,7 +364,7 @@ export function CreatePostModal({
 
         {/* Dispatch Mode */}
         <div className="space-y-2">
-          <span className="text-xs font-medium text-neutral-300">Dispatch Timing</span>
+          <span className="text-xs font-medium text-foreground">Dispatch Timing</span>
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
@@ -372,8 +372,8 @@ export function CreatePostModal({
               onClick={() => setMode("scheduled")}
               className={`px-3 py-2 rounded-xl text-xs font-medium border transition flex items-center justify-center gap-1.5 ${
                 mode === "scheduled"
-                  ? "bg-sky-600/20 border-sky-500/60 text-sky-300"
-                  : "bg-neutral-800/60 border-neutral-700 text-neutral-400 hover:text-white"
+                  ? "bg-sky-500/15 border-sky-500/60 text-sky-400 font-semibold"
+                  : "bg-surface-muted border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               <Clock className="h-3.5 w-3.5" />
@@ -385,8 +385,8 @@ export function CreatePostModal({
               onClick={() => setMode("published")}
               className={`px-3 py-2 rounded-xl text-xs font-medium border transition flex items-center justify-center gap-1.5 ${
                 mode === "published"
-                  ? "bg-emerald-600/20 border-emerald-500/60 text-emerald-300"
-                  : "bg-neutral-800/60 border-neutral-700 text-neutral-400 hover:text-white"
+                  ? "bg-success-soft border-success/60 text-success font-semibold"
+                  : "bg-surface-muted border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               <Send className="h-3.5 w-3.5" />
@@ -398,8 +398,8 @@ export function CreatePostModal({
               onClick={() => setMode("draft")}
               className={`px-3 py-2 rounded-xl text-xs font-medium border transition flex items-center justify-center gap-1.5 ${
                 mode === "draft"
-                  ? "bg-neutral-700 border-neutral-500 text-white"
-                  : "bg-neutral-800/60 border-neutral-700 text-neutral-400 hover:text-white"
+                  ? "bg-surface border-border-strong text-foreground font-semibold"
+                  : "bg-surface-muted border-border text-muted-foreground hover:text-foreground"
               }`}
             >
               <FileText className="h-3.5 w-3.5" />
@@ -411,7 +411,7 @@ export function CreatePostModal({
         {/* Schedule Date & Time */}
         {mode === "scheduled" && (
           <div className="space-y-2.5">
-            <label htmlFor={scheduleInputId} className="block text-xs font-medium text-neutral-300">
+            <label htmlFor={scheduleInputId} className="block text-xs font-medium text-foreground">
               Schedule Date &amp; Time
             </label>
             <input
@@ -420,34 +420,34 @@ export function CreatePostModal({
               required
               value={scheduledAt}
               onChange={(e) => setScheduledAt(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white focus:outline-none focus:ring-2 focus:ring-sky-500"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-xs text-foreground focus:outline-none focus:ring-2 focus:ring-sky-500"
             />
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 text-[11px]">
               <button
                 type="button"
                 onClick={() => applyPreset(1)}
-                className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition"
+                className="px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
               >
                 +1 Hour
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset(3)}
-                className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition"
+                className="px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
               >
                 +3 Hours
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset(undefined, 9)}
-                className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition"
+                className="px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
               >
                 Tomorrow 9 AM
               </button>
               <button
                 type="button"
                 onClick={() => applyPreset(undefined, 18)}
-                className="px-2.5 py-1.5 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 border border-neutral-700 transition"
+                className="px-2.5 py-1.5 rounded-lg bg-surface-muted hover:bg-surface text-foreground border border-border transition"
               >
                 Tomorrow 6 PM
               </button>
@@ -456,18 +456,18 @@ export function CreatePostModal({
         )}
 
         {/* Footer Actions */}
-        <div className="flex justify-end gap-2 pt-3 border-t border-neutral-800">
+        <div className="flex justify-end gap-2 pt-3 border-t border-border">
           <button
             type="button"
             onClick={onClose}
-            className="px-3.5 py-2 rounded-xl text-xs text-neutral-300 hover:bg-neutral-800 transition"
+            className="px-3.5 py-2 rounded-xl text-xs text-muted-foreground hover:text-foreground hover:bg-surface-muted transition"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={createMutation.isPending || contents.length === 0}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-md shadow-indigo-600/20 disabled:opacity-50 transition"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 disabled:opacity-50 transition"
           >
             {createMutation.isPending ? (
               <Loader2 className="h-3.5 w-3.5 animate-spin" />
