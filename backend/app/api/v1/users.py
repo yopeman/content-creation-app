@@ -1,9 +1,18 @@
+from datetime import datetime, timezone
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.deps import get_current_user
 from app.core.security import create_access_token, hash_password, verify_password
 from app.models.enums import UserStatus
 from app.models.user import User
-from app.schemas.user import TokenResponse, UserCreate, UserLogin, UserResponse
+from app.schemas.user import (
+    TokenResponse,
+    UserCreate,
+    UserLogin,
+    UserPasswordChange,
+    UserProfileUpdate,
+    UserResponse,
+)
 
 router = APIRouter()
 
@@ -56,3 +65,69 @@ async def login(payload: UserLogin):
 @router.get("/me", response_model=UserResponse)
 async def get_me(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.patch("/me", response_model=UserResponse, summary="Update Current User Profile")
+@router.put("/me", response_model=UserResponse, summary="Update Current User Profile", include_in_schema=False)
+async def update_me(
+    payload: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+):
+    if payload.name is not None:
+        cleaned_name = payload.name.strip()
+        if not cleaned_name:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Name cannot be empty.",
+            )
+        current_user.name = cleaned_name
+
+    if payload.email is not None and payload.email != current_user.email:
+        existing = await User.find_one(User.email == payload.email, User.id != current_user.id)
+        if existing:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="A user with this email already exists.",
+            )
+        current_user.email = payload.email
+
+    if payload.timezone is not None:
+        cleaned_tz = payload.timezone.strip()
+        try:
+            ZoneInfo(cleaned_tz)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid timezone.",
+            )
+        current_user.timezone = cleaned_tz
+
+    current_user.updated_at = datetime.now(timezone.utc)
+    await current_user.save()
+    return current_user
+
+
+@router.post("/me/password", summary="Change Current User Password")
+@router.patch("/me/password", summary="Change Current User Password", include_in_schema=False)
+async def change_password(
+    payload: UserPasswordChange,
+    current_user: User = Depends(get_current_user),
+):
+    if not current_user.password_hash or not verify_password(
+        payload.current_password, current_user.password_hash
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect.",
+        )
+
+    if payload.new_password == payload.current_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password.",
+        )
+
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.updated_at = datetime.now(timezone.utc)
+    await current_user.save()
+    return {"message": "Password updated successfully."}

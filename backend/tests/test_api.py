@@ -73,6 +73,55 @@ async def test_user_auth_flow(async_client: AsyncClient):
     get_user_resp = await async_client.get(f"/api/v1/users/{user_id}")
     assert get_user_resp.status_code == 404
 
+    # 10. Update current user profile via PATCH /api/v1/users/me
+    patch_resp = await async_client.patch(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "Jane Updated", "email": "jane.updated@example.com", "timezone": "Europe/London"},
+    )
+    assert patch_resp.status_code == 200
+    updated_data = patch_resp.json()
+    assert updated_data["name"] == "Jane Updated"
+    assert updated_data["email"] == "jane.updated@example.com"
+    assert updated_data["timezone"] == "Europe/London"
+
+    # 11. Invalid timezone or blank name should return 400
+    bad_tz_resp = await async_client.patch(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"timezone": "Invalid/Timezone"},
+    )
+    assert bad_tz_resp.status_code == 400
+
+    blank_name_resp = await async_client.patch(
+        "/api/v1/users/me",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"name": "   "},
+    )
+    assert blank_name_resp.status_code == 400
+
+    # 12. Change password with wrong current password fails (400)
+    wrong_pw_resp = await async_client.post(
+        "/api/v1/users/me/password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"current_password": "wrongpassword", "new_password": "newsecurepassword123"},
+    )
+    assert wrong_pw_resp.status_code == 400
+
+    # 13. Change password with valid current password succeeds and allows login with new password
+    pw_resp = await async_client.post(
+        "/api/v1/users/me/password",
+        headers={"Authorization": f"Bearer {token}"},
+        json={"current_password": "securepassword123", "new_password": "newsecurepassword123"},
+    )
+    assert pw_resp.status_code == 200
+
+    new_login = await async_client.post(
+        "/api/v1/users/login",
+        json={"email": "jane.updated@example.com", "password": "newsecurepassword123"},
+    )
+    assert new_login.status_code == 200
+
 
 @pytest.mark.asyncio
 async def test_platforms_full_lifecycle(auth_client: AsyncClient):

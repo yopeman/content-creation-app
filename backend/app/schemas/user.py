@@ -28,6 +28,17 @@ class UserUpdate(BaseModel):
     status: Optional[UserStatus] = None
 
 
+class UserProfileUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=120)
+    email: Optional[EmailStr] = None
+    timezone: Optional[str] = Field(default=None, min_length=1, max_length=64)
+
+
+class UserPasswordChange(BaseModel):
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6)
+
+
 class UserResponse(UserBase):
     id: PydanticObjectId = Field(alias="_id")
     created_at: datetime

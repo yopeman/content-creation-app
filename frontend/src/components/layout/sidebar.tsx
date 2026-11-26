@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -12,10 +13,12 @@ import {
   CalendarDays,
   Radio,
   LogOut,
+  Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
+import { ProfileEditModal } from "@/components/layout/profile-edit-modal";
 
 const navItems = [
   { name: "Overview", href: "/", icon: LayoutDashboard },
@@ -30,6 +33,7 @@ const navItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuthStore();
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   return (
     <aside className="w-64 border-r border-neutral-800 bg-neutral-900/50 flex flex-col shrink-0 h-full">
@@ -72,20 +76,35 @@ export function Sidebar() {
 
       {/* User Section */}
       <div className="p-3 border-t border-neutral-800 shrink-0">
-        <div className="p-3 rounded-xl bg-neutral-800/40 border border-neutral-800/80 flex items-center justify-between">
-          <div className="min-w-0 pr-2">
-            <p className="text-xs font-semibold text-white truncate">{user?.name || "Creator"}</p>
-            <p className="text-[11px] text-neutral-400 truncate">{user?.email || "..."}</p>
-          </div>
+        <div className="p-2 rounded-xl bg-neutral-800/40 border border-neutral-800/80 flex items-center justify-between gap-1">
           <button
+            type="button"
+            onClick={() => setIsProfileModalOpen(true)}
+            title="Edit profile"
+            className="flex-1 min-w-0 p-1.5 rounded-lg flex items-center justify-between gap-2 text-left hover:bg-neutral-800/70 transition group"
+          >
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-white truncate">{user?.name || "Creator"}</p>
+              <p className="text-[11px] text-neutral-400 truncate">{user?.email || "..."}</p>
+            </div>
+          </button>
+          <button
+            type="button"
             onClick={logout}
             title="Sign out"
-            className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition"
+            aria-label="Sign out"
+            className="p-1.5 text-neutral-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition shrink-0"
           >
             <LogOut className="h-4 w-4" />
           </button>
         </div>
       </div>
+
+      <ProfileEditModal
+        open={isProfileModalOpen}
+        user={user}
+        onClose={() => setIsProfileModalOpen(false)}
+      />
     </aside>
   );
 }

@@ -7,6 +7,7 @@ interface AuthState {
   token: string | null;
   isLoading: boolean;
   setAuth: (user: User, token: string) => void;
+  setUser: (user: User) => void;
   logout: () => void;
   fetchMe: () => Promise<void>;
 }
@@ -22,6 +23,10 @@ export const useAuthStore = create<AuthState>((set) => ({
       document.cookie = `yope_token=${token}; path=/; max-age=604800; SameSite=Lax`;
     }
     set({ user, token, isLoading: false });
+  },
+
+  setUser: (user) => {
+    set({ user });
   },
 
   logout: () => {
