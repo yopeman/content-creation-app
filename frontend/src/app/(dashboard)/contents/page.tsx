@@ -261,7 +261,7 @@ export default function ContentsPage() {
         </div>
 
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+        <div className="flex flex-wrap items-center gap-1.5">
           {["all", "ready", "draft", "approved", "archived"].map((st) => (
             <button
               key={st}

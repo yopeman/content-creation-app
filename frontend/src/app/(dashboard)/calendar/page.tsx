@@ -195,7 +195,7 @@ export default function CalendarPage() {
 
       {/* Filter Pills & Month Controls */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 scrollbar-none w-full sm:w-auto">
+        <div className="flex flex-wrap items-center gap-1.5">
           {(
             [
               { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-primary text-primary-foreground shadow-primary/20" },
@@ -209,7 +209,7 @@ export default function CalendarPage() {
               type="button"
               aria-pressed={statusFilter === tab.id}
               onClick={() => setStatusFilter(tab.id)}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition shrink-0 ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
                 statusFilter === tab.id
                   ? `${tab.activeClass} shadow-sm font-semibold`
                   : "bg-surface border border-border text-muted-foreground hover:text-foreground"

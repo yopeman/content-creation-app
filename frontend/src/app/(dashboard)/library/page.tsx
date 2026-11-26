@@ -99,6 +99,14 @@ export default function MediaLibraryPage() {
     return c.details.some((d) => d.type === filterType);
   });
 
+  const counts = {
+    all: contents.length,
+    text: contents.filter((c) => c.details.some((d) => d.type === "text")).length,
+    image: contents.filter((c) => c.details.some((d) => d.type === "image")).length,
+    audio: contents.filter((c) => c.details.some((d) => d.type === "audio")).length,
+    video: contents.filter((c) => c.details.some((d) => d.type === "video")).length,
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* Header */}
@@ -160,24 +168,37 @@ export default function MediaLibraryPage() {
       )}
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-border pb-3">
-        {[
-          { id: "all", label: "All Items" },
-          { id: "text", label: "Text Copy" },
-          { id: "image", label: "Images" },
-          { id: "audio", label: "Audio" },
-          { id: "video", label: "Videos" },
-        ].map((tab) => (
+      <div className="flex flex-wrap items-center gap-1.5">
+        {(
+          [
+            { id: "all", label: "All Items", count: counts.all },
+            { id: "text", label: "Text Copy", count: counts.text },
+            { id: "image", label: "Images", count: counts.image },
+            { id: "audio", label: "Audio", count: counts.audio },
+            { id: "video", label: "Videos", count: counts.video },
+          ] as const
+        ).map((tab) => (
           <button
             key={tab.id}
+            type="button"
+            aria-pressed={filterType === tab.id}
             onClick={() => setFilterType(tab.id)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
               filterType === tab.id
-                ? "bg-surface-muted text-foreground border border-border"
-                : "text-muted-foreground hover:text-foreground"
+                ? "bg-primary text-primary-foreground shadow-sm font-semibold"
+                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
-            {tab.label}
+            <span>{tab.label}</span>
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                filterType === tab.id
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
+              {tab.count}
+            </span>
           </button>
         ))}
       </div>

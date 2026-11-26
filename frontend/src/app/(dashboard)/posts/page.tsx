@@ -325,111 +325,39 @@ export default function PostsPage() {
       {/* Filter and Search Bar */}
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3">
         {/* Status Filter Tabs */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0 scrollbar-none">
-          <button
-            type="button"
-            onClick={() => setStatusFilter("all")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-              statusFilter === "all"
-                ? "bg-primary text-primary-foreground shadow-sm font-semibold"
-                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>All Posts</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === "all"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-muted text-muted-foreground"
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(
+            [
+              { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-primary text-primary-foreground shadow-sm font-semibold" },
+              { id: "scheduled", label: "Scheduled", count: counts.scheduled, activeClass: "bg-sky-600 text-white shadow-sm font-semibold" },
+              { id: "published", label: "Published", count: counts.published, activeClass: "bg-emerald-600 text-white shadow-sm font-semibold" },
+              { id: "draft", label: "Drafts", count: counts.draft, activeClass: "bg-purple-600 text-white shadow-sm font-semibold" },
+              { id: "failed", label: "Failed / Partial", count: counts.failed, activeClass: "bg-rose-600 text-white shadow-sm font-semibold" },
+            ] as const
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              aria-pressed={statusFilter === tab.id}
+              onClick={() => setStatusFilter(tab.id)}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition ${
+                statusFilter === tab.id
+                  ? tab.activeClass
+                  : "bg-surface border border-border text-muted-foreground hover:text-foreground"
               }`}
             >
-              {counts.all}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("scheduled")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-              statusFilter === "scheduled"
-                ? "bg-sky-600 text-white shadow-sm font-semibold"
-                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>Scheduled</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === "scheduled"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-muted text-muted-foreground"
-              }`}
-            >
-              {counts.scheduled}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("published")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-              statusFilter === "published"
-                ? "bg-emerald-600 text-white shadow-sm font-semibold"
-                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>Published</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === "published"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-muted text-muted-foreground"
-              }`}
-            >
-              {counts.published}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("draft")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-              statusFilter === "draft"
-                ? "bg-purple-600 text-white shadow-sm font-semibold"
-                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>Drafts</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === "draft"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-muted text-muted-foreground"
-              }`}
-            >
-              {counts.draft}
-            </span>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setStatusFilter("failed")}
-            className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
-              statusFilter === "failed"
-                ? "bg-rose-600 text-white shadow-sm font-semibold"
-                : "bg-surface border border-border text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            <span>Failed / Partial</span>
-            <span
-              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
-                statusFilter === "failed"
-                  ? "bg-white/20 text-white"
-                  : "bg-surface-muted text-muted-foreground"
-              }`}
-            >
-              {counts.failed}
-            </span>
-          </button>
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  statusFilter === tab.id
+                    ? "bg-white/20 text-white"
+                    : "bg-surface-muted text-muted-foreground"
+                }`}
+              >
+                {tab.count}
+              </span>
+            </button>
+          ))}
         </div>
 
         {/* Search Input */}
