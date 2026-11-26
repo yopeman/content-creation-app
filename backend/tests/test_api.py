@@ -656,6 +656,89 @@ async def test_telegram_default_bot_token_lifecycle(auth_client: AsyncClient):
     settings.DEFAULT_TELEGRAM_BOT_TOKEN = old_token
 
 
+@pytest.mark.asyncio
+async def test_integration_ingest_and_claim_lifecycle(async_client: AsyncClient):
+    from app.core.config import settings
+
+    # 1. Ingest without API key fails with 401
+    unauth_resp = await async_client.post(
+        "/api/v1/integrations/contents",
+        json={
+            "name": "Integration User",
+            "email": "external.ingest@example.com",
+            "content": {"title": "External Post", "details": [{"type": "text", "text": "Hello external"}]},
+        },
+    )
+    assert unauth_resp.status_code == 401
+
+    # 2. Ingest with valid X-API-Key
+    headers = {"X-API-Key": settings.INTEGRATION_API_KEY}
+    ingest_resp = await async_client.post(
+        "/api/v1/integrations/contents",
+        headers=headers,
+        json={
+            "name": "Integration User",
+            "email": "external.ingest@example.com",
+            "content": {
+                "title": "External Cross-Project Post",
+                "details": [
+                    {"type": "text", "text": "Post generated from other project", "order": 1},
+                    {"type": "image", "path": "https://example.com/banner.png", "order": 2},
+                ],
+                "status": "draft",
+            },
+        },
+    )
+    assert ingest_resp.status_code == 201
+    ingest_data = ingest_resp.json()
+    assert ingest_data["is_new_user"] is True
+    assert "claim_token" in ingest_data
+    assert "view_url" in ingest_data
+    assert f"/contents/{ingest_data['content_id']}" in ingest_data["view_url"]
+    claim_token = ingest_data["claim_token"]
+
+    # 3. Claim ticket without auth
+    claim_resp = await async_client.post(
+        "/api/v1/integrations/claim-ticket",
+        json={"claim_token": claim_token},
+    )
+    assert claim_resp.status_code == 200
+    claim_data = claim_resp.json()
+    assert "access_token" in claim_data
+    assert claim_data["user"]["email"] == "external.ingest@example.com"
+    assert claim_data["onboarding"]["needs_password"] is True
+    assert claim_data["onboarding"]["has_connected_channel"] is False
+    user_token = claim_data["access_token"]
+    user_headers = {"Authorization": f"Bearer {user_token}"}
+
+    # 4. Set initial password
+    pw_resp = await async_client.post(
+        "/api/v1/users/me/set-initial-password",
+        headers=user_headers,
+        json={"new_password": "supersecurepassword123"},
+    )
+    assert pw_resp.status_code == 200
+
+    # 5. Connect Telegram channel with default bot token
+    settings.DEFAULT_TELEGRAM_BOT_TOKEN = "123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11"
+    tg_connect = await async_client.post(
+        "/api/v1/platforms/tg",
+        headers=user_headers,
+        json={"chat_id": "@external_user_channel"},
+    )
+    assert tg_connect.status_code == 201
+
+    # 6. Re-claiming ticket now shows both steps complete!
+    reclaim_resp = await async_client.post(
+        "/api/v1/integrations/claim-ticket",
+        json={"claim_token": claim_token},
+    )
+    assert reclaim_resp.status_code == 200
+    reclaim_data = reclaim_resp.json()
+    assert reclaim_data["onboarding"]["needs_password"] is False
+    assert reclaim_data["onboarding"]["has_connected_channel"] is True
+
+
 
 
 

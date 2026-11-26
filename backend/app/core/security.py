@@ -27,6 +27,27 @@ def create_access_token(subject: str | Any, expires_delta: Optional[timedelta] =
     return encoded_jwt
 
 
+def create_claim_token(user_id: str, content_id: str, expires_delta: Optional[timedelta] = None) -> str:
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(hours=24)
+    to_encode = {
+        "exp": expire,
+        "sub": str(user_id),
+        "content_id": str(content_id),
+        "type": "claim_ticket",
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+def decode_claim_token(token: str) -> dict:
+    payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+    if payload.get("type") != "claim_ticket":
+        raise ValueError("Invalid claim ticket type")
+    return payload
+
+
 def _get_fernet() -> Fernet:
     """Derives a Fernet key deterministically from ENCRYPTION_KEY (fallback to SECRET_KEY for backwards-compatibility)."""
     key_source = settings.ENCRYPTION_KEY or settings.SECRET_KEY

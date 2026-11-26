@@ -15,7 +15,8 @@ export function middleware(request: NextRequest) {
     pathname.startsWith("/posts") ||
     pathname.startsWith("/settings");
 
-  if (!token && isDashboardRoute) {
+  const hasClaimToken = request.nextUrl.searchParams.has("claim_token");
+  if (!token && isDashboardRoute && !hasClaimToken) {
     const loginUrl = new URL("/login", request.url);
     return NextResponse.redirect(loginUrl);
   }

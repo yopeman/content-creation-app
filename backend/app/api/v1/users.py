@@ -12,6 +12,8 @@ from app.schemas.user import (
     UserPasswordChange,
     UserProfileUpdate,
     UserResponse,
+    UserSetInitialPassword,
+    UserUpdate,
 )
 
 router = APIRouter()
@@ -107,12 +109,32 @@ async def update_me(
     return current_user
 
 
+@router.post("/me/set-initial-password", summary="Set Initial Password for Auto-Created User")
+async def set_initial_password(
+    payload: UserSetInitialPassword,
+    current_user: User = Depends(get_current_user),
+):
+    """Sets initial password for users auto-created via external integration claims."""
+    current_user.password_hash = hash_password(payload.new_password)
+    current_user.needs_password = False
+    current_user.updated_at = datetime.now(timezone.utc)
+    await current_user.save()
+    return {"message": "Password set successfully."}
+
+
 @router.post("/me/password", summary="Change Current User Password")
 @router.patch("/me/password", summary="Change Current User Password", include_in_schema=False)
 async def change_password(
     payload: UserPasswordChange,
     current_user: User = Depends(get_current_user),
 ):
+    if current_user.needs_password or not current_user.password_hash:
+        current_user.password_hash = hash_password(payload.new_password)
+        current_user.needs_password = False
+        current_user.updated_at = datetime.now(timezone.utc)
+        await current_user.save()
+        return {"message": "Password updated successfully."}
+
     if not current_user.password_hash or not verify_password(
         payload.current_password, current_user.password_hash
     ):

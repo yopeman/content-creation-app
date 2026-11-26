@@ -2,13 +2,22 @@
 
 export const dynamic = "force-dynamic";
 
-import { useState } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient, getMediaUrl } from "@/lib/api-client";
+import { useAuthStore } from "@/store/auth-store";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
-import { Content, ContentDetail, ContentStatus, ContentType, Platform } from "@/types";
+import {
+  ClaimTicketResponse,
+  Content,
+  ContentDetail,
+  ContentStatus,
+  ContentType,
+  OnboardingStatus,
+  Platform,
+} from "@/types";
 import {
   ArrowLeft,
   Plus,
@@ -40,8 +49,58 @@ interface EditableBlock extends ContentDetail {
 }
 
 export default function ContentAdjusterPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex flex-col items-center justify-center text-subtle-foreground">
+          <Loader2 className="h-6 w-6 animate-spin mb-2 text-primary" />
+          <span className="text-xs">Loading content...</span>
+        </div>
+      }
+    >
+      <ContentAdjusterInner />
+    </Suspense>
+  );
+}
+
+function ContentAdjusterInner() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const contentId = params.id as string;
+  const claimToken = searchParams.get("claim_token");
+  const { setAuth } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const [claimLoading, setClaimLoading] = useState(Boolean(claimToken));
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+
+  useEffect(() => {
+    if (!claimToken) return;
+    let isMounted = true;
+    (async () => {
+      try {
+        setClaimLoading(true);
+        const res = await apiClient.post<ClaimTicketResponse>("/integrations/claim-ticket", {
+          claim_token: claimToken,
+        });
+        if (!isMounted) return;
+        setAuth(res.data.user, res.data.access_token);
+        setOnboarding(res.data.onboarding);
+        setClaimLoading(false);
+        queryClient.invalidateQueries({ queryKey: ["content", contentId] });
+        queryClient.invalidateQueries({ queryKey: ["platforms"] });
+        window.history.replaceState({}, "", window.location.pathname);
+      } catch (err: any) {
+        if (!isMounted) return;
+        setClaimLoading(false);
+        setClaimError(err.response?.data?.detail || "Invalid or expired access token.");
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [claimToken, contentId, queryClient, setAuth]);
 
   // 1. Fetch content
   const { data: content, isLoading: loadingContent } = useQuery<Content>({
@@ -50,7 +109,7 @@ export default function ContentAdjusterPage() {
       const res = await apiClient.get<Content>(`/contents/${contentId}`);
       return res.data;
     },
-    enabled: !!contentId,
+    enabled: !!contentId && !claimLoading,
   });
 
   // 2. Fetch platforms for dispatch modal
@@ -60,7 +119,35 @@ export default function ContentAdjusterPage() {
       const res = await apiClient.get<Platform[]>("/platforms");
       return res.data;
     },
+    enabled: !claimLoading,
   });
+
+  if (claimLoading) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-subtle-foreground space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-xs font-medium">Claiming access ticket & loading your content...</span>
+      </div>
+    );
+  }
+
+  if (claimError) {
+    return (
+      <div className="max-w-md mx-auto my-16 p-6 rounded-2xl bg-surface border border-danger/30 text-center space-y-4 shadow-xl">
+        <div className="h-12 w-12 rounded-xl bg-danger-soft text-danger flex items-center justify-center mx-auto">
+          <AlertCircle className="h-6 w-6" />
+        </div>
+        <h2 className="text-base font-bold text-foreground">Access Link Expired or Invalid</h2>
+        <p className="text-xs text-muted-foreground">{claimError}</p>
+        <Link
+          href="/login"
+          className="inline-flex px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover transition"
+        >
+          Go to Login
+        </Link>
+      </div>
+    );
+  }
 
   if (loadingContent || !content) {
     return (
@@ -71,15 +158,24 @@ export default function ContentAdjusterPage() {
     );
   }
 
-  return <ContentAdjusterForm key={content._id} content={content} platforms={platforms} />;
+  return (
+    <ContentAdjusterForm
+      key={content._id}
+      content={content}
+      platforms={platforms}
+      initialOnboarding={onboarding}
+    />
+  );
 }
 
 function ContentAdjusterForm({
   content,
   platforms,
+  initialOnboarding,
 }: {
   content: Content;
   platforms: Platform[];
+  initialOnboarding?: OnboardingStatus | null;
 }) {
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -104,6 +200,93 @@ function ContentAdjusterForm({
   const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+
+  // Quick-Start Onboarding Wizard Modal State
+  const [showOnboarding, setShowOnboarding] = useState<boolean>(() => {
+    if (initialOnboarding) {
+      return Boolean(initialOnboarding.needs_password || !initialOnboarding.has_connected_channel);
+    }
+    return false;
+  });
+
+  const [onboardingStep, setOnboardingStep] = useState<"password" | "channel">(() => {
+    if (initialOnboarding?.needs_password) return "password";
+    return "channel";
+  });
+
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+
+  const [tgChatId, setTgChatId] = useState("");
+  const [tgBotToken, setTgBotToken] = useState("");
+  const [showTgCustomToken, setShowTgCustomToken] = useState(false);
+  const [channelError, setChannelError] = useState<string | null>(null);
+  const [onboardingSuccessToast, setOnboardingSuccessToast] = useState<string | null>(null);
+
+  // Password mutation for onboarding
+  const setPasswordMutation = useMutation({
+    mutationFn: async () => {
+      if (newPassword.length < 6) {
+        throw new Error("Password must be at least 6 characters.");
+      }
+      if (newPassword !== confirmPassword) {
+        throw new Error("Passwords do not match.");
+      }
+      const res = await apiClient.post("/users/me/set-initial-password", {
+        new_password: newPassword,
+      });
+      return res.data;
+    },
+    onSuccess: () => {
+      setPasswordError(null);
+      if (!initialOnboarding?.has_connected_channel || platforms.length === 0) {
+        setOnboardingStep("channel");
+      } else {
+        setShowOnboarding(false);
+        setOnboardingSuccessToast("Password set successfully! Your account is ready.");
+        setTimeout(() => setOnboardingSuccessToast(null), 4000);
+      }
+    },
+    onError: (err: any) => {
+      setPasswordError(err.message || err.response?.data?.detail || "Failed to set password.");
+    },
+  });
+
+  // Connect Channel mutation for onboarding
+  const connectChannelMutation = useMutation({
+    mutationFn: async () => {
+      const trimmedChatId = tgChatId.trim();
+      if (!trimmedChatId) {
+        throw new Error("Please enter a channel username or chat ID.");
+      }
+      const formattedChatId =
+        trimmedChatId.startsWith("@") || /^-?\d+$/.test(trimmedChatId)
+          ? trimmedChatId
+          : `@${trimmedChatId}`;
+
+      const payload: { chat_id: string; bot_token?: string } = {
+        chat_id: formattedChatId,
+      };
+      if (showTgCustomToken && tgBotToken.trim()) {
+        payload.bot_token = tgBotToken.trim();
+      }
+
+      const res = await apiClient.post("/platforms/tg", payload);
+      return res.data;
+    },
+    onSuccess: (newPlat) => {
+      setChannelError(null);
+      queryClient.invalidateQueries({ queryKey: ["platforms"] });
+      setSelectedPlatformIds([newPlat._id]);
+      setShowOnboarding(false);
+      setOnboardingSuccessToast("Telegram channel connected! Your content is ready to dispatch.");
+      setTimeout(() => setOnboardingSuccessToast(null), 4000);
+    },
+    onError: (err: any) => {
+      setChannelError(err.message || err.response?.data?.detail || "Failed to connect channel.");
+    },
+  });
 
   // Dispatch modal state
   const [showDispatchModal, setShowDispatchModal] = useState(false);
@@ -465,6 +648,13 @@ function ContentAdjusterForm({
         <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
           <span>Adjustments saved successfully.</span>
+        </div>
+      )}
+
+      {onboardingSuccessToast && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{onboardingSuccessToast}</span>
         </div>
       )}
 
@@ -1385,6 +1575,199 @@ function ContentAdjusterForm({
                 </span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Quick-Start Onboarding Wizard Modal */}
+      {showOnboarding && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 shadow-2xl space-y-5">
+            {/* Steps indicator */}
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center font-bold text-sm">
+                  🚀
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-foreground">Quick Setup Wizard</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    {onboardingStep === "password"
+                      ? "Step 1 of 2: Secure Your Account"
+                      : initialOnboarding?.needs_password
+                      ? "Step 2 of 2: Connect Publishing Channel"
+                      : "Step 1 of 1: Connect Publishing Channel"}
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-semibold font-mono px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20">
+                {onboardingStep === "password" ? "Step 1" : "Step 2"}
+              </span>
+            </div>
+
+            {/* Step 1: Password */}
+            {onboardingStep === "password" && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setPasswordMutation.mutate();
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-foreground">Choose Account Password</h4>
+                  <p className="text-xs text-muted-foreground">
+                    This content was imported from an external project. Please set a password to secure your account.
+                  </p>
+                </div>
+
+                {passwordError && (
+                  <div className="p-3 rounded-xl bg-danger-soft border border-danger/20 text-danger text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{passwordError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      New Password <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="At least 6 characters"
+                      required
+                      minLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      autoFocus
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Confirm Password <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Re-enter your password"
+                      required
+                      minLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end pt-2">
+                  <button
+                    type="submit"
+                    disabled={!newPassword || newPassword.length < 6 || setPasswordMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
+                  >
+                    {setPasswordMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    <span>
+                      {!initialOnboarding?.has_connected_channel || platforms.length === 0
+                        ? "Next: Connect Channel →"
+                        : "Save & Open Content"}
+                    </span>
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Step 2: Connect Channel */}
+            {onboardingStep === "channel" && (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  connectChannelMutation.mutate();
+                }}
+                className="space-y-4"
+              >
+                <div className="space-y-1">
+                  <h4 className="text-sm font-semibold text-foreground">Connect Telegram Channel</h4>
+                  <p className="text-xs text-muted-foreground">
+                    Connect at least one active channel to dispatch and publish your content.
+                  </p>
+                </div>
+
+                {channelError && (
+                  <div className="p-3 rounded-xl bg-danger-soft border border-danger/20 text-danger text-xs flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{channelError}</span>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-foreground mb-1">
+                      Channel Username or Chat ID <span className="text-danger">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={tgChatId}
+                      onChange={(e) => setTgChatId(e.target.value)}
+                      placeholder="@my_channel_username or -100123456789"
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                      autoFocus
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      Using default bot from .env. Ensure the bot is added as an administrator with posting rights.
+                    </p>
+                  </div>
+
+                  {/* Optional Custom Token Toggle */}
+                  <div className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setShowTgCustomToken(!showTgCustomToken)}
+                      className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition underline-offset-2 hover:underline"
+                    >
+                      <span>{showTgCustomToken ? "− Hide custom bot token" : "+ Use custom bot token instead"}</span>
+                    </button>
+
+                    {showTgCustomToken && (
+                      <div className="mt-2.5 space-y-1 animate-in fade-in duration-200">
+                        <label className="block text-xs font-semibold text-foreground">
+                          Custom Telegram Bot Token
+                        </label>
+                        <input
+                          type="password"
+                          value={tgBotToken}
+                          onChange={(e) => setTgBotToken(e.target.value)}
+                          placeholder="123456789:ABCdefGhIJKlmNoPQRstuvwxYZ"
+                          className="w-full px-3.5 py-2.5 rounded-lg bg-surface-muted border border-border text-foreground text-xs focus:outline-none focus:ring-2 focus:ring-primary"
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  {initialOnboarding?.needs_password ? (
+                    <button
+                      type="button"
+                      onClick={() => setOnboardingStep("password")}
+                      className="text-xs text-muted-foreground hover:text-foreground"
+                    >
+                      ← Back to Password
+                    </button>
+                  ) : <div />}
+                  <button
+                    type="submit"
+                    disabled={!tgChatId.trim() || connectChannelMutation.isPending}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
+                  >
+                    {connectChannelMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                    <span>Connect Channel & Open Content</span>
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

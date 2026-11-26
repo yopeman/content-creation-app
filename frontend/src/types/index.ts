@@ -6,8 +6,22 @@ export interface User {
   email: string;
   timezone: string;
   status: UserStatus;
+  needs_password?: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface OnboardingStatus {
+  needs_password: boolean;
+  has_connected_channel: boolean;
+}
+
+export interface ClaimTicketResponse {
+  access_token: string;
+  token_type: string;
+  user: User;
+  content_id: string;
+  onboarding: OnboardingStatus;
 }
 
 export interface TokenResponse {

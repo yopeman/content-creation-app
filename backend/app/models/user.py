@@ -9,6 +9,7 @@ class User(Document):
     name: str
     email: Indexed(EmailStr, unique=True)
     password_hash: Optional[str] = None
+    needs_password: bool = False
     timezone: str = "UTC"
     status: UserStatus = UserStatus.ACTIVE
     deleted_at: Optional[datetime] = None

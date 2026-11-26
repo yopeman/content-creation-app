@@ -33,6 +33,10 @@ class Settings(BaseSettings):
     DEFAULT_TELEGRAM_BOT_TOKEN: Optional[str] = None
     TELEGRAM_BOT_TOKEN: Optional[str] = None
 
+    # Integrations (for external project requests)
+    INTEGRATION_API_KEY: str = "supersecretintegrationkeyforotherprojects"
+    FRONTEND_URL: str = "http://localhost:3000"
+
     # AI / LLM (Groq & LangChain)
     GROQ_API_KEY: str = ""
     GROQ_MODEL: str = "openai/gpt-oss-120b"

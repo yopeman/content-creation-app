@@ -39,8 +39,13 @@ class UserPasswordChange(BaseModel):
     new_password: str = Field(..., min_length=6)
 
 
+class UserSetInitialPassword(BaseModel):
+    new_password: str = Field(..., min_length=6)
+
+
 class UserResponse(UserBase):
     id: PydanticObjectId = Field(alias="_id")
+    needs_password: bool = False
     created_at: datetime
     updated_at: datetime
 
