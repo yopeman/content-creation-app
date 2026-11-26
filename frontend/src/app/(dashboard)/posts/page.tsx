@@ -336,7 +336,13 @@ export default function PostsPage() {
             }`}
           >
             <span>All Posts</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === "all"
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
               {counts.all}
             </span>
           </button>
@@ -351,7 +357,13 @@ export default function PostsPage() {
             }`}
           >
             <span>Scheduled</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === "scheduled"
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
               {counts.scheduled}
             </span>
           </button>
@@ -366,7 +378,13 @@ export default function PostsPage() {
             }`}
           >
             <span>Published</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === "published"
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
               {counts.published}
             </span>
           </button>
@@ -376,12 +394,18 @@ export default function PostsPage() {
             onClick={() => setStatusFilter("draft")}
             className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition ${
               statusFilter === "draft"
-                ? "bg-surface text-foreground font-semibold border border-border-strong shadow-sm"
+                ? "bg-purple-600 text-white shadow-sm font-semibold"
                 : "bg-surface border border-border text-muted-foreground hover:text-foreground"
             }`}
           >
             <span>Drafts</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === "draft"
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
               {counts.draft}
             </span>
           </button>
@@ -396,7 +420,13 @@ export default function PostsPage() {
             }`}
           >
             <span>Failed / Partial</span>
-            <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+            <span
+              className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                statusFilter === "failed"
+                  ? "bg-white/20 text-white"
+                  : "bg-surface-muted text-muted-foreground"
+              }`}
+            >
               {counts.failed}
             </span>
           </button>

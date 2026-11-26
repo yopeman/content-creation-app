@@ -201,7 +201,7 @@ export default function CalendarPage() {
               { id: "all", label: "All Posts", count: counts.all, activeClass: "bg-primary text-primary-foreground shadow-primary/20" },
               { id: "scheduled", label: "Scheduled", count: counts.scheduled, activeClass: "bg-sky-600 text-white" },
               { id: "published", label: "Posted", count: counts.published, activeClass: "bg-emerald-600 text-white" },
-              { id: "other", label: "Drafts / Failed", count: counts.other, activeClass: "bg-surface-muted text-foreground border border-border" },
+              { id: "other", label: "Drafts / Failed", count: counts.other, activeClass: "bg-purple-600 text-white" },
             ] as const
           ).map((tab) => (
             <button
@@ -216,7 +216,13 @@ export default function CalendarPage() {
               }`}
             >
               <span>{tab.label}</span>
-              <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-surface-muted text-muted-foreground">
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  statusFilter === tab.id
+                    ? "bg-white/20 text-white"
+                    : "bg-surface-muted text-muted-foreground"
+                }`}
+              >
                 {tab.count}
               </span>
             </button>
