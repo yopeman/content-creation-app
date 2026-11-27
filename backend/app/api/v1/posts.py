@@ -294,26 +294,6 @@ async def list_posts(current_user: User = Depends(get_current_user)):
     return result
 
 
-@router.get("/{post_id}", response_model=PostResponse, summary="Get Post Details")
-async def get_post(post_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
-    post = await Post.find_one(
-        Post.id == post_id,
-        Post.user_id == current_user.id,
-        Post.deleted_at == None,  # noqa: E711
-    )
-    if not post:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
-
-    targets = await PostTarget.find(
-        PostTarget.post_id == post.id,
-        PostTarget.deleted_at == None,  # noqa: E711
-    ).to_list()
-
-    post_dict = post.model_dump(by_alias=True)
-    post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
-    return PostResponse(**post_dict)
-
-
 @router.get("/cron-dispatch", summary="Process Due Scheduled Posts (Cron Trigger)")
 @router.post("/cron-dispatch", summary="Process Due Scheduled Posts (Cron Trigger)")
 async def cron_dispatch_due(authorization: Optional[str] = Header(None)):
@@ -340,6 +320,26 @@ async def trigger_dispatch_due(current_user: User = Depends(get_current_user)):
     from app.services.scheduler import scheduled_post_worker
     processed = await scheduled_post_worker.process_due_posts()
     return {"status": "success", "processed_count": processed}
+
+
+@router.get("/{post_id}", response_model=PostResponse, summary="Get Post Details")
+async def get_post(post_id: PydanticObjectId, current_user: User = Depends(get_current_user)):
+    post = await Post.find_one(
+        Post.id == post_id,
+        Post.user_id == current_user.id,
+        Post.deleted_at == None,  # noqa: E711
+    )
+    if not post:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
+
+    targets = await PostTarget.find(
+        PostTarget.post_id == post.id,
+        PostTarget.deleted_at == None,  # noqa: E711
+    ).to_list()
+
+    post_dict = post.model_dump(by_alias=True)
+    post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
+    return PostResponse(**post_dict)
 
 
 @router.patch("/{post_id}/reschedule", response_model=PostResponse, summary="Reschedule Post")
