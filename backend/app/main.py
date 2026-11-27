@@ -52,6 +52,7 @@ app.mount("/uploads", StaticFiles(directory=str(settings.upload_path)), name="up
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
+@app.get("", summary="Root Status")
 @app.get("/", summary="Root Status")
 async def root():
     return {
