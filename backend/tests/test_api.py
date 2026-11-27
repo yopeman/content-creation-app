@@ -739,6 +739,48 @@ async def test_integration_ingest_and_claim_lifecycle(async_client: AsyncClient)
     assert reclaim_data["onboarding"]["has_connected_channel"] is True
 
 
+@pytest.mark.asyncio
+async def test_integration_ingest_user_only_direct_to_root(async_client: AsyncClient):
+    from app.core.config import settings
+
+    old_key = settings.INTEGRATION_API_KEY
+    settings.INTEGRATION_API_KEY = "test_integration_api_key_456"
+    headers = {"X-API-Key": "test_integration_api_key_456"}
+    try:
+        # 1. Ingest user only without content
+        resp = await async_client.post(
+            "/api/v1/integrations/contents",
+            headers=headers,
+            json={
+                "name": "Root Landing User",
+                "email": "useronly@example.com",
+            },
+        )
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["content_id"] is None
+        assert data["is_new_user"] is True
+        assert "claim_token" in data
+        assert "view_url" in data
+        # view_url should link to /?claim_token=
+        assert "/?claim_token=" in data["view_url"]
+
+        # 2. Claim ticket
+        claim_resp = await async_client.post(
+            "/api/v1/integrations/claim-ticket",
+            json={"claim_token": data["claim_token"]},
+        )
+        assert claim_resp.status_code == 200
+        claim_data = claim_resp.json()
+        assert claim_data["content_id"] is None
+        assert claim_data["user"]["email"] == "useronly@example.com"
+        assert claim_data["onboarding"]["needs_password"] is True
+        assert claim_data["onboarding"]["has_connected_channel"] is False
+    finally:
+        settings.INTEGRATION_API_KEY = old_key
+
+
+
 
 
 

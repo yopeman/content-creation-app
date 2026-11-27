@@ -1,30 +1,89 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { Suspense, useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
 import { apiClient } from "@/lib/api-client";
-import { Content, Post, Platform } from "@/types";
+import { useAuthStore } from "@/store/auth-store";
+import { Content, Post, Platform, ClaimTicketResponse, OnboardingStatus } from "@/types";
 import {
   FileText,
   Wand2,
-  Send,
   Radio,
   ArrowRight,
   Plus,
   CheckCircle2,
   Clock,
   Sparkles,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
+import { QuickStartWizardModal } from "@/components/onboarding/quick-start-wizard-modal";
 
 export default function DashboardOverviewPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="h-64 flex flex-col items-center justify-center text-subtle-foreground space-y-2">
+          <Loader2 className="h-6 w-6 animate-spin text-primary" />
+          <span className="text-xs">Loading dashboard...</span>
+        </div>
+      }
+    >
+      <DashboardOverviewContent />
+    </Suspense>
+  );
+}
+
+function DashboardOverviewContent() {
+  const searchParams = useSearchParams();
+  const claimToken = searchParams.get("claim_token");
+  const { setAuth } = useAuthStore();
+  const queryClient = useQueryClient();
+
+  const [claimLoading, setClaimLoading] = useState(Boolean(claimToken));
+  const [claimError, setClaimError] = useState<string | null>(null);
+  const [onboarding, setOnboarding] = useState<OnboardingStatus | null>(null);
+  const [onboardingSuccessToast, setOnboardingSuccessToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!claimToken) return;
+    let isMounted = true;
+    (async () => {
+      try {
+        setClaimLoading(true);
+        const res = await apiClient.post<ClaimTicketResponse>("/integrations/claim-ticket", {
+          claim_token: claimToken,
+        });
+        if (!isMounted) return;
+        setAuth(res.data.user, res.data.access_token);
+        setOnboarding(res.data.onboarding);
+        setClaimLoading(false);
+        queryClient.invalidateQueries({ queryKey: ["contents"] });
+        queryClient.invalidateQueries({ queryKey: ["posts"] });
+        queryClient.invalidateQueries({ queryKey: ["platforms"] });
+        window.history.replaceState({}, "", window.location.pathname);
+      } catch (err: any) {
+        if (!isMounted) return;
+        setClaimLoading(false);
+        setClaimError(err.response?.data?.detail || "Invalid or expired access token.");
+      }
+    })();
+    return () => {
+      isMounted = false;
+    };
+  }, [claimToken, queryClient, setAuth]);
+
   const { data: contents = [], isLoading: loadingContents } = useQuery<Content[]>({
     queryKey: ["contents"],
     queryFn: async () => {
       const res = await apiClient.get<Content[]>("/contents");
       return res.data;
     },
+    enabled: !claimLoading,
   });
 
   const { data: posts = [] } = useQuery<Post[]>({
@@ -33,6 +92,7 @@ export default function DashboardOverviewPage() {
       const res = await apiClient.get<Post[]>("/posts");
       return res.data;
     },
+    enabled: !claimLoading,
   });
 
   const { data: platforms = [] } = useQuery<Platform[]>({
@@ -41,13 +101,61 @@ export default function DashboardOverviewPage() {
       const res = await apiClient.get<Platform[]>("/platforms");
       return res.data;
     },
+    enabled: !claimLoading,
   });
+
+  if (claimLoading) {
+    return (
+      <div className="h-64 flex flex-col items-center justify-center text-subtle-foreground space-y-3">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="text-xs font-medium">Claiming access ticket & loading your dashboard...</span>
+      </div>
+    );
+  }
+
+  if (claimError) {
+    return (
+      <div className="max-w-md mx-auto my-16 p-6 rounded-2xl bg-surface border border-danger/30 text-center space-y-4 shadow-xl">
+        <div className="h-12 w-12 rounded-xl bg-danger-soft text-danger flex items-center justify-center mx-auto">
+          <AlertCircle className="h-6 w-6" />
+        </div>
+        <h2 className="text-base font-bold text-foreground">Access Link Expired or Invalid</h2>
+        <p className="text-xs text-muted-foreground">{claimError}</p>
+        <Link
+          href="/login"
+          className="inline-flex px-4 py-2 rounded-xl bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary-hover transition"
+        >
+          Go to Login
+        </Link>
+      </div>
+    );
+  }
 
   const scheduledCount = posts.filter((p) => p.status === "scheduled").length;
   const publishedCount = posts.filter((p) => p.status === "published").length;
 
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
+      {onboardingSuccessToast && (
+        <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs flex items-center gap-2 animate-in fade-in">
+          <CheckCircle2 className="h-4 w-4 shrink-0" />
+          <span>{onboardingSuccessToast}</span>
+        </div>
+      )}
+
+      {/* Onboarding Wizard Modal if user needs password or active channel */}
+      {onboarding && (
+        <QuickStartWizardModal
+          initialOnboarding={onboarding}
+          hasPlatforms={platforms.length > 0}
+          destinationLabel="Open Dashboard"
+          onSuccess={() => {
+            setOnboardingSuccessToast("Account setup completed! Welcome to your dashboard.");
+            setTimeout(() => setOnboardingSuccessToast(null), 4000);
+          }}
+        />
+      )}
+
       {/* Welcome Banner */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-soft via-surface to-surface-muted border border-primary-border p-5 sm:p-8 shadow-xl">
         <div className="relative z-10 max-w-2xl">
@@ -102,35 +210,33 @@ export default function DashboardOverviewPage() {
             </div>
           </div>
           <p className="text-2xl font-bold text-foreground mt-3">{scheduledCount}</p>
-          <p className="text-xs text-subtle-foreground mt-1">Ready for automated dispatch</p>
+          <p className="text-xs text-subtle-foreground mt-1">Ready for automated broadcast</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
             <span className="text-xs font-medium text-muted-foreground">Published Posts</span>
-            <div className="p-2 rounded-lg bg-success-soft text-success">
-              <Send className="h-4 w-4" />
+            <div className="p-2 rounded-lg bg-emerald-500/10 text-emerald-400">
+              <CheckCircle2 className="h-4 w-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-foreground mt-3">{publishedCount}</p>
-          <p className="text-xs text-subtle-foreground mt-1">Delivered to connected channels</p>
+          <p className="text-xs text-subtle-foreground mt-1">Dispatched to channels</p>
         </div>
 
         <div className="p-5 rounded-2xl bg-surface border border-border shadow-sm">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-medium text-muted-foreground">Connected Accounts</span>
-            <div className="p-2 rounded-lg bg-warning-soft text-warning">
+            <span className="text-xs font-medium text-muted-foreground">Active Channels</span>
+            <div className="p-2 rounded-lg bg-purple-500/10 text-purple-400">
               <Radio className="h-4 w-4" />
             </div>
           </div>
           <p className="text-2xl font-bold text-foreground mt-3">{platforms.length}</p>
-          <p className="text-xs text-subtle-foreground mt-1">
-            {platforms.length > 0 ? "Telegram active" : "No accounts connected"}
-          </p>
+          <p className="text-xs text-subtle-foreground mt-1">Telegram bots & destinations</p>
         </div>
       </div>
 
-      {/* Grid: Contents & Quick Platform Status */}
+      {/* Main Grid: Recent Contents & Dispatch Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Recent Contents */}
         <div className="lg:col-span-2 space-y-4">
@@ -138,7 +244,7 @@ export default function DashboardOverviewPage() {
             <h2 className="text-lg font-semibold text-foreground">Recent Content</h2>
             <Link
               href="/contents"
-              className="text-xs font-medium text-primary hover:underline flex items-center gap-1"
+              className="text-xs text-primary hover:underline flex items-center gap-1 font-medium"
             >
               <span>View all</span>
               <ArrowRight className="h-3.5 w-3.5" />
@@ -146,57 +252,54 @@ export default function DashboardOverviewPage() {
           </div>
 
           {loadingContents ? (
-            <div className="h-48 rounded-2xl bg-surface/50 border border-border animate-pulse flex items-center justify-center text-muted-foreground text-sm">
-              Loading content...
+            <div className="rounded-2xl bg-surface border border-border p-8 text-center text-xs text-muted-foreground">
+              Loading recent content...
             </div>
           ) : contents.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-border p-8 text-center bg-surface/30">
-              <FileText className="h-8 w-8 text-subtle-foreground mx-auto mb-2" />
-              <p className="text-sm font-medium text-foreground">No content created yet</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Draft content manually or generate multi-modal assets with AI.
+            <div className="rounded-2xl bg-surface border border-border p-12 text-center space-y-3">
+              <div className="mx-auto w-12 h-12 rounded-2xl bg-primary-soft text-primary flex items-center justify-center">
+                <FileText className="h-6 w-6" />
+              </div>
+              <p className="text-sm font-semibold text-foreground">No content yet</p>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto">
+                Create your first multimodal content or ingest drafts from an external project to start publishing.
               </p>
-              <Link
-                href="/studio"
-                className="mt-4 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium"
-              >
-                <Wand2 className="h-3.5 w-3.5" />
-                <span>Open Studio</span>
-                <ComingSoonBadge />
-              </Link>
+              <div className="pt-2">
+                <Link
+                  href="/contents/new"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md shadow-primary/20 transition"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Create First Content</span>
+                </Link>
+              </div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {contents.slice(0, 5).map((c) => {
-                const textDetail = c.details.find((d) => d.type === "text");
-                const formatCount = c.details?.length || 0;
-
+            <div className="rounded-2xl bg-surface border border-border divide-y divide-border overflow-hidden">
+              {contents.slice(0, 5).map((item) => {
+                const totalBlocks = item.details?.length || 0;
                 return (
                   <Link
-                    key={c._id}
-                    href={`/contents/${c._id}`}
-                    className="block p-4 rounded-xl bg-surface border border-border hover:border-border-strong hover:bg-surface-muted transition group"
+                    key={item._id}
+                    href={`/contents/${item._id}`}
+                    className="p-4 flex items-center justify-between hover:bg-surface-muted transition group"
                   >
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-foreground group-hover:text-primary transition">
-                          {c.title}
-                        </h3>
-                        {textDetail?.text && (
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
-                            {textDetail.text}
-                          </p>
-                        )}
+                    <div className="min-w-0 pr-4">
+                      <div className="flex items-center gap-2">
+                        <span className="font-semibold text-sm text-foreground group-hover:text-primary transition truncate">
+                          {item.title}
+                        </span>
+                        <span className="text-[10px] px-2 py-0.5 rounded-full bg-surface-muted border border-border text-muted-foreground uppercase font-mono">
+                          {item.status}
+                        </span>
                       </div>
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-surface-muted text-foreground font-medium capitalize border border-border">
-                        {c.status}
-                      </span>
+                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                        <span>{totalBlocks} block(s)</span>
+                        <span>•</span>
+                        <span>{formatDate(item.created_at)}</span>
+                      </div>
                     </div>
-
-                    <div className="mt-3 flex items-center justify-between text-[11px] text-muted-foreground border-t border-border pt-2.5">
-                      <span>{formatCount} format(s) attached</span>
-                      <span>Created {formatDate(c.created_at)}</span>
-                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary group-hover:translate-x-0.5 transition" />
                   </Link>
                 );
               })}
