@@ -1,6 +1,6 @@
 import os
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.router import api_router
@@ -44,6 +44,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.middleware("http")
+async def vercel_routing_middleware(request: Request, call_next):
+    """Restores the original request URL path when running behind Vercel's edge rewrite proxy."""
+    matched_path = request.headers.get("x-matched-path")
+    forwarded_uri = request.headers.get("x-forwarded-uri")
+    target_path = matched_path or forwarded_uri
+    current_path = request.scope.get("path", "")
+
+    if target_path and target_path not in ("/api/index.py", "/api/index", "/api"):
+        clean_path = target_path.split("?")[0]
+        request.scope["path"] = clean_path
+    elif current_path in ("/api/index.py", "/api/index", "/api", "/api/"):
+        request.scope["path"] = "/"
+
+    return await call_next(request)
 
 # Serve local media files (images, audio, video) statically
 app.mount("/uploads", StaticFiles(directory=str(settings.upload_path)), name="uploads")
