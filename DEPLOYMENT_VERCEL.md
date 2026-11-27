@@ -37,9 +37,25 @@ Add the following environment variables in the Vercel project settings:
 Click **Deploy**.
 Once deployed, copy your backend production domain (e.g., `https://yope-backend.vercel.app`).
 
-> **Note on Background Scheduling & Worker**:
-> Because Vercel functions are serverless and ephemeral, continuous `while True` polling loops do not run 24/7.
-> Instead, `backend/vercel.json` configures a **Vercel Cron Job** (`* * * * *`) that triggers `/api/v1/posts/cron-dispatch` every minute to process due scheduled posts automatically.
+> **Note on Background Scheduling & Worker on Vercel Hobby**:
+> Vercel Hobby (free) accounts restrict built-in Vercel Cron jobs to at most once per day (`0 0 * * *`), which is too infrequent for timely social media publishing.
+> To prevent Vercel deployment errors, internal `crons` are omitted from `backend/vercel.json`. Instead, trigger `/api/v1/posts/cron-dispatch` using one of these free alternatives:
+>
+> 1. **cron-job.org (Recommended - Free & 1-minute interval)**:
+>    - Create a free account on [cron-job.org](https://cron-job.org).
+>    - Create a new cron job pointing to: `https://<your-backend-app>.vercel.app/api/v1/posts/cron-dispatch`
+>    - Method: `POST` (or `GET`)
+>    - Execution Schedule: Every 1 minute (or 5 minutes).
+>    - If you set `CRON_SECRET` in Vercel, add header: `Authorization: Bearer <your-cron-secret>`.
+>
+> 2. **GitHub Actions (Free - Included in this repo)**:
+>    - A workflow is preconfigured at `.github/workflows/scheduled-posts.yml` running every 5 minutes.
+>    - Go to your repository on GitHub -> **Settings** -> **Secrets and variables** -> **Actions**.
+>    - Add secret `BACKEND_URL`: `https://<your-backend-app>.vercel.app`
+>    - (Optional) Add secret `CRON_SECRET`: matching your backend `CRON_SECRET`.
+>
+> 3. **Upstash QStash**:
+>    - Use Upstash QStash to schedule recurring HTTP requests to the cron endpoint.
 
 ---
 
