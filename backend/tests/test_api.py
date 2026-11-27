@@ -133,7 +133,7 @@ async def test_platforms_full_lifecycle(auth_client: AsyncClient):
     assert supported_platforms[0]["code"] == "TG"
     assert supported_platforms[0]["name"] == "Telegram"
     assert supported_platforms[0]["is_supported"] is True
-    assert "bot_token" in supported_platforms[0]["required_details"]
+    assert "chat_id" in supported_platforms[0]["required_details"]
 
     # 2. General POST /api/v1/platforms is removed (returns 405 Method Not Allowed)
     general_post_resp = await auth_client.post(

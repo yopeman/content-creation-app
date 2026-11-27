@@ -1,5 +1,7 @@
+import os
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -44,14 +46,39 @@ class Settings(BaseSettings):
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
+    # Vercel Cron Security
+    CRON_SECRET: Optional[str] = None
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="before")
+    @classmethod
+    def assemble_cors_origins(cls, v: Any) -> List[str]:
+        if isinstance(v, str):
+            clean = v.strip()
+            if clean.startswith("[") and clean.endswith("]"):
+                import json
+                try:
+                    return json.loads(clean)
+                except Exception:
+                    pass
+            return [item.strip() for item in clean.split(",") if item.strip()]
+        elif isinstance(v, list):
+            return v
+        return ["*"]
+
     @property
     def default_tg_bot_token(self) -> Optional[str]:
         return self.DEFAULT_TELEGRAM_BOT_TOKEN or self.TELEGRAM_BOT_TOKEN
 
     @property
     def upload_path(self) -> Path:
-        path = self.BASE_DIR / self.UPLOAD_DIR
-        path.mkdir(parents=True, exist_ok=True)
+        if os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"):
+            path = Path("/tmp") / self.UPLOAD_DIR
+        else:
+            path = self.BASE_DIR / self.UPLOAD_DIR
+        try:
+            path.mkdir(parents=True, exist_ok=True)
+        except Exception:
+            pass
         return path
 
 

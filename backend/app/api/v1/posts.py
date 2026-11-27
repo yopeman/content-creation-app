@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Optional
 from beanie import PydanticObjectId
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, Header, HTTPException, status
 from app.api.deps import get_current_user
 from app.models.content import Content
 from app.models.enums import ContentType, PlatformCode, PostStatus, PostTargetStatus
@@ -312,6 +312,26 @@ async def get_post(post_id: PydanticObjectId, current_user: User = Depends(get_c
     post_dict = post.model_dump(by_alias=True)
     post_dict["targets"] = [t.model_dump(by_alias=True) for t in targets]
     return PostResponse(**post_dict)
+
+
+@router.get("/cron-dispatch", summary="Process Due Scheduled Posts (Cron Trigger)")
+@router.post("/cron-dispatch", summary="Process Due Scheduled Posts (Cron Trigger)")
+async def cron_dispatch_due(authorization: Optional[str] = Header(None)):
+    """Triggered by Vercel Cron or external schedulers to process due posts.
+
+    If CRON_SECRET is configured, verifies Bearer authorization.
+    """
+    from app.core.config import settings
+    if settings.CRON_SECRET:
+        expected = f"Bearer {settings.CRON_SECRET}"
+        if authorization != expected:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Unauthorized cron trigger request.",
+            )
+    from app.services.scheduler import scheduled_post_worker
+    processed = await scheduled_post_worker.process_due_posts()
+    return {"status": "success", "processed_count": processed}
 
 
 @router.post("/dispatch-due", summary="Process Due Scheduled Posts (Background Worker Trigger)")

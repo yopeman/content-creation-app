@@ -1,3 +1,4 @@
+import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,13 +13,19 @@ from app.services.scheduler import scheduled_post_worker
 async def lifespan(app: FastAPI):
     # Startup: Initialize MongoDB connection & Beanie ODM models
     await init_db()
-    # Ensure local upload directories exist
-    settings.upload_path.mkdir(parents=True, exist_ok=True)
-    # Start background worker for scheduled posts
-    scheduled_post_worker.start()
+    # Ensure upload directories exist
+    try:
+        settings.upload_path.mkdir(parents=True, exist_ok=True)
+    except Exception:
+        pass
+    # Start background worker for scheduled posts (only when running as dedicated daemon, not serverless)
+    is_serverless = bool(os.environ.get("VERCEL") or os.environ.get("AWS_LAMBDA_FUNCTION_NAME"))
+    if not is_serverless:
+        scheduled_post_worker.start()
     yield
     # Shutdown: Stop worker and cleanly disconnect from MongoDB
-    await scheduled_post_worker.stop()
+    if not is_serverless:
+        await scheduled_post_worker.stop()
     await close_db()
 
 
