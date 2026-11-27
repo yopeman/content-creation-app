@@ -12,9 +12,10 @@ This monorepo is configured for seamless deployment on Vercel into two separate 
 1. In your Vercel Dashboard, click **Add New...** -> **Project**.
 2. Select your Git repository.
 3. In the configuration dialog:
-   - **Project Name**: e.g., `yope-backend` (or your preferred name).
+   - **Project Name**: e.g., `yope-backend`.
    - **Framework Preset**: **Other**.
    - **Root Directory**: Click *Edit* and select **`backend`**.
+   - Vercel automatically detects `main.py` as the entrypoint function.
 
 ### Step 2: Configure Environment Variables
 Add the following environment variables in the Vercel project settings:
