@@ -8,25 +8,31 @@ import { AlertCircle, Loader2 } from "lucide-react";
 
 interface QuickStartWizardModalProps {
   initialOnboarding: OnboardingStatus;
-  hasPlatforms: boolean;
+  hasPlatforms?: boolean;
   onSuccess?: () => void;
   destinationLabel?: string;
 }
 
 export function QuickStartWizardModal({
   initialOnboarding,
-  hasPlatforms,
+  hasPlatforms = false,
   onSuccess,
   destinationLabel = "Open Dashboard",
 }: QuickStartWizardModalProps) {
   const queryClient = useQueryClient();
 
+  const hasExistingChannel = Boolean(initialOnboarding.has_connected_channel || hasPlatforms);
+
+  // If user has an existing active platform:
+  // - If they also don't need a password, do not show the modal at all.
+  // - If they need a password, show Step 1 (password) only, then finish.
+  // If they don't have any active platform:
+  // - Show password (if needed) -> then connect channel.
   const [isOpen, setIsOpen] = useState<boolean>(() => {
-    return Boolean(
-      initialOnboarding.needs_password ||
-        !initialOnboarding.has_connected_channel ||
-        !hasPlatforms
-    );
+    if (hasExistingChannel) {
+      return Boolean(initialOnboarding.needs_password);
+    }
+    return true;
   });
 
   const [onboardingStep, setOnboardingStep] = useState<"password" | "channel">(() => {
@@ -59,11 +65,13 @@ export function QuickStartWizardModal({
     },
     onSuccess: () => {
       setPasswordError(null);
-      if (!initialOnboarding.has_connected_channel || !hasPlatforms) {
-        setOnboardingStep("channel");
-      } else {
+      if (hasExistingChannel) {
+        // User already has an active connected channel; finish onboarding
         setIsOpen(false);
         onSuccess?.();
+      } else {
+        // User has no active platform; prompt to connect channel
+        setOnboardingStep("channel");
       }
     },
     onError: (err: any) => {
@@ -123,7 +131,9 @@ export function QuickStartWizardModal({
               <h3 className="text-sm font-bold text-foreground">Quick Setup Wizard</h3>
               <p className="text-[11px] text-muted-foreground">
                 {onboardingStep === "password"
-                  ? "Step 1 of 2: Secure Your Account"
+                  ? hasExistingChannel
+                    ? "Step 1 of 1: Secure Your Account"
+                    : "Step 1 of 2: Secure Your Account"
                   : initialOnboarding.needs_password
                   ? "Step 2 of 2: Connect Publishing Channel"
                   : "Step 1 of 1: Connect Publishing Channel"}
@@ -198,11 +208,7 @@ export function QuickStartWizardModal({
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary hover:bg-primary-hover text-primary-foreground text-xs font-semibold shadow-md disabled:opacity-50 transition"
               >
                 {setPasswordMutation.isPending && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                <span>
-                  {!initialOnboarding.has_connected_channel || !hasPlatforms
-                    ? "Next: Connect Channel →"
-                    : destinationLabel}
-                </span>
+                <span>{hasExistingChannel ? destinationLabel : "Next: Connect Channel →"}</span>
               </button>
             </div>
           </form>
@@ -218,9 +224,18 @@ export function QuickStartWizardModal({
             className="space-y-4"
           >
             <div className="space-y-1">
-              <h4 className="text-sm font-semibold text-foreground">Connect Telegram Channel</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-semibold text-foreground">Connect Telegram Channel</h4>
+                {(initialOnboarding.has_connected_channel || hasPlatforms) && (
+                  <span className="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 font-medium">
+                    Channel already linked
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-muted-foreground">
-                Connect at least one active channel to dispatch and publish your content.
+                {(initialOnboarding.has_connected_channel || hasPlatforms)
+                  ? "You already have a channel connected. You can connect another Telegram channel now or skip to continue."
+                  : "Connect at least one active channel to dispatch and publish your content."}
               </p>
             </div>
 
@@ -278,17 +293,29 @@ export function QuickStartWizardModal({
             </div>
 
             <div className="flex items-center justify-between pt-2">
-              {initialOnboarding.needs_password ? (
-                <button
-                  type="button"
-                  onClick={() => setOnboardingStep("password")}
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                >
-                  ← Back to Password
-                </button>
-              ) : (
-                <div />
-              )}
+              <div className="flex items-center gap-2">
+                {initialOnboarding.needs_password && (
+                  <button
+                    type="button"
+                    onClick={() => setOnboardingStep("password")}
+                    className="text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    ← Back to Password
+                  </button>
+                )}
+                {(initialOnboarding.has_connected_channel || hasPlatforms) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOpen(false);
+                      onSuccess?.();
+                    }}
+                    className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 ml-1"
+                  >
+                    Skip ({destinationLabel})
+                  </button>
+                )}
+              </div>
               <button
                 type="submit"
                 disabled={!tgChatId.trim() || connectChannelMutation.isPending}

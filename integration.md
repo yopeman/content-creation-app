@@ -127,3 +127,63 @@ curl -X POST "http://localhost:8000/api/v1/integrations/contents" \
   "view_url": "http://localhost:3000/?claim_token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
 }
 ```
+
+
+---
+
+## 4. Frontend Claim Ticket Exchange & Onboarding
+
+### 4.1 Ticket Claiming
+
+When the user opens `view_url`, the frontend intercepts the `claim_token` query parameter and immediately exchanges it:
+
+- **Endpoint:** `POST /api/v1/integrations/claim-ticket`
+- **Request Body:**
+  ```json
+  {
+    "claim_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+  }
+  ```
+- **Response:**
+  ```json
+  {
+    "access_token": "bearer_jwt_access_token_here",
+    "token_type": "bearer",
+    "user": {
+      "id": "674601dfa12b4e8590d9a100",
+      "email": "yope@example.com",
+      "name": "Yope Man",
+      "needs_password": true,
+      "status": "active"
+    },
+    "content_id": "674601dfa12b4e8590d9a101",
+    "onboarding": {
+      "needs_password": true,
+      "has_connected_channel": false
+    }
+  }
+  ```
+
+### 4.2 Onboarding Workflow
+
+When the user enters through `view_url` (`claim_token`), the Quick-Start Onboarding Wizard handles any incomplete configuration:
+
+- **If the user already has at least one active connected channel AND already has a password set**: The modal is hidden completely and the user directly accesses their dashboard or content.
+- **If the user already has an active channel but needs to set an initial password**: The wizard only prompts for **Step 1: Set Password** and then finishes immediately (`Open Dashboard` / `Open Content`).
+- **If the user has NO active connected channel**: The wizard guides them through setting a password (if `needs_password == true`) and then **Connect Telegram Channel** (`POST /api/v1/platforms/tg`).
+  - Telegram uses the system default bot token configured in backend `.env` (`DEFAULT_TELEGRAM_BOT_TOKEN`).
+  - The user only needs to provide their Telegram `Chat ID` (e.g. `@channelname` or numerical ID `-100...`).
+
+---
+
+## 5. Environment Configuration
+
+Add the following variables to `backend/.env`:
+
+| Variable | Description | Example |
+| :--- | :--- | :--- |
+| `INTEGRATION_API_KEY` | Secret key used for authenticating external project requests | `your-secure-random-secret-key-32chars` |
+| `FRONTEND_URL` | Base URL of frontend used to construct `view_url` | `http://localhost:3000` |
+| `DEFAULT_TELEGRAM_BOT_TOKEN` | Default Telegram bot token used for zero-token channel links | `123456789:ABCdefGHIjklMNOpqrSTUvwxYZ` |
+| `JWT_SECRET_KEY` | Secret key for signing access and claim tokens | `your-jwt-secret-key` |
+| `CLAIM_TOKEN_EXPIRE_HOURS` | Lifetime of the one-time claim token | `24` |
