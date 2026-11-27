@@ -7,7 +7,7 @@ import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
 import { Content, ContentType } from "@/types";
 import {
   Wand2,
-  Sparkles,
+  Megaphone,
   FileText,
   Image as ImageIcon,
   Mic,
@@ -127,11 +127,10 @@ export default function StudioPage() {
                   key={type}
                   type="button"
                   onClick={() => toggleFormat(type)}
-                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border transition ${
-                    active
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-medium border transition ${active
                       ? "bg-primary text-primary-foreground border-primary shadow-md shadow-primary/20"
                       : "bg-surface-muted text-muted-foreground border-border hover:text-foreground hover:bg-surface"
-                  }`}
+                    }`}
                 >
                   <Icon className="h-3.5 w-3.5" />
                   <span>{label}</span>
@@ -146,7 +145,7 @@ export default function StudioPage() {
           disabled
           className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-primary to-orange-400 text-primary-foreground font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-primary/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          <Sparkles className="h-4 w-4" />
+          <Megaphone className="h-4 w-4" />
           <span>Generate Multi-Modal Assets</span>
           <ComingSoonBadge />
         </button>

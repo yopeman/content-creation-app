@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Sparkles,
+  Megaphone,
   LayoutDashboard,
   FileText,
   Wand2,
@@ -40,7 +40,7 @@ export function Sidebar() {
       {/* Brand Header */}
       <div className="h-16 shrink-0 flex items-center px-6 gap-3 border-b border-border">
         <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20">
-          <Sparkles className="h-5 w-5" />
+          <Megaphone className="h-5 w-5" />
         </div>
         <div>
           <span className="font-bold text-foreground text-base tracking-tight">Yope</span>

@@ -11,7 +11,7 @@ import { Content, ContentType, Prompt } from "@/types";
 import {
   ArrowLeft,
   Wand2,
-  Sparkles,
+  Megaphone,
   Loader2,
   FileText,
   Image as ImageIcon,
@@ -187,7 +187,7 @@ export default function StudioDetailPage() {
           {/* Prompt Refinement Composer */}
           <div className="p-6 rounded-2xl bg-surface border border-border space-y-4">
             <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-primary" />
+              <Megaphone className="h-4 w-4 text-primary" />
               <span>Prompt Chain Refinement</span>
             </h3>
 
@@ -208,11 +208,10 @@ export default function StudioDetailPage() {
                       key={fmt}
                       type="button"
                       onClick={() => toggleFormat(fmt)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium uppercase transition ${
-                        active
+                      className={`px-2.5 py-1 rounded-lg text-xs font-medium uppercase transition ${active
                           ? "bg-primary text-primary-foreground font-bold"
                           : "bg-surface-muted text-muted-foreground hover:text-foreground border border-border"
-                      }`}
+                        }`}
                     >
                       {fmt}
                     </button>

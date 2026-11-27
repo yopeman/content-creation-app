@@ -15,7 +15,7 @@ import {
   Plus,
   CheckCircle2,
   Clock,
-  Sparkles,
+  Megaphone,
   Loader2,
   AlertCircle,
 } from "lucide-react";
@@ -160,7 +160,7 @@ function DashboardOverviewContent() {
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-primary-soft via-surface to-surface-muted border border-primary-border p-5 sm:p-8 shadow-xl">
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary-soft border border-primary-border text-primary text-xs font-semibold mb-3">
-            <Sparkles className="h-3.5 w-3.5" />
+            <Megaphone className="h-3.5 w-3.5" />
             <span>AI Multi-Modal Content Engine</span>
           </div>
           <h1 className="text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl lg:text-4xl">

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { apiClient } from "@/lib/api-client";
 import { useAuthStore } from "@/store/auth-store";
 import { TokenResponse } from "@/types";
-import { Sparkles, ArrowRight, Loader2, AlertCircle } from "lucide-react";
+import { Megaphone, ArrowRight, Loader2, AlertCircle } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -44,7 +44,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md bg-surface border border-border rounded-2xl p-6 sm:p-8 shadow-2xl">
         <div className="flex items-center gap-2 mb-6">
           <div className="h-10 w-10 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/30">
-            <Sparkles className="h-5 w-5" />
+            <Megaphone className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-xl font-bold text-foreground tracking-tight">Yope</h1>

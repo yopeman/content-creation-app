@@ -1,7 +1,7 @@
 "use client";
 
 import { useThemeStore, Theme } from "@/store/theme-store";
-import { Sun, Moon, Sparkles, Monitor } from "lucide-react";
+import { Sun, Moon, MoonStar, Monitor } from "lucide-react";
 
 export function ThemeSwitcher() {
   const { theme, setTheme } = useThemeStore();
@@ -9,7 +9,7 @@ export function ThemeSwitcher() {
   const options: { id: Theme; label: string; icon: typeof Sun }[] = [
     { id: "light", label: "Light", icon: Sun },
     { id: "dark", label: "Dark", icon: Moon },
-    { id: "night", label: "Night", icon: Sparkles },
+    { id: "night", label: "Night", icon: MoonStar },
     { id: "system", label: "System", icon: Monitor },
   ];
 

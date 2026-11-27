@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Sparkles, X, LogOut } from "lucide-react";
+import { Megaphone, X, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth-store";
 import { ComingSoonBadge } from "@/components/ui/coming-soon-badge";
@@ -73,7 +73,7 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
         <div className="h-16 shrink-0 flex items-center justify-between px-6 border-b border-border">
           <div className="flex items-center gap-3">
             <div className="h-9 w-9 rounded-xl bg-gradient-to-tr from-primary to-orange-400 flex items-center justify-center text-primary-foreground shadow-md shadow-primary/20">
-              <Sparkles className="h-5 w-5" />
+              <Megaphone className="h-5 w-5" />
             </div>
             <div>
               <span className="font-bold text-foreground text-base tracking-tight">Yope</span>
