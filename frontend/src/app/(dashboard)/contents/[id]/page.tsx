@@ -821,7 +821,7 @@ function ContentAdjusterForm({
                           Copywriting / Caption Body
                         </label>
                         <textarea
-                          rows={4}
+                          rows={15}
                           value={block.text || ""}
                           onChange={(e) => updateBlock(block.id, { text: e.target.value })}
                           placeholder="Adjust caption, headlines, hashtags..."
