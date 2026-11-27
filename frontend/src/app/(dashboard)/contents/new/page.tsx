@@ -456,7 +456,7 @@ export default function NewContentPage() {
                         Social Post Text / Caption Body
                       </label>
                       <textarea
-                        rows={4}
+                        rows={15}
                         value={block.text || ""}
                         onChange={(e) => updateBlock(block.id, { text: e.target.value })}
                         placeholder="Write your engaging caption, hashtags, and announcement copy here..."
